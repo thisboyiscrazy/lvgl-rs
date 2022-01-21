@@ -120,6 +120,7 @@ fn main() {
         .ctypes_prefix("cty")
         .clang_args(&cc_args)
         .clang_args(&additional_args)
+        .clang_arg("-I/usr/local/Cellar/arm-none-eabi-gcc/10-2020-q4-major/gcc/arm-none-eabi/include")
         .generate()
         .expect("Unable to generate bindings");
 
