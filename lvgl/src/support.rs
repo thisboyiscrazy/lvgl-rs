@@ -1,7 +1,7 @@
 use crate::Widget;
 use core::convert::{TryFrom, TryInto};
 use core::ptr::NonNull;
-use embedded_graphics::pixelcolor::{Rgb565, Rgb888};
+use embedded_graphics_core::pixelcolor::{Rgb565, Rgb888};
 
 pub type LvResult<T> = Result<T, LvError>;
 
