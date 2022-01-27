@@ -70,6 +70,7 @@ fn main() {
         .include(&vendor)
         .warnings(false)
         .include(&lv_config_dir)
+        .archiver("arm-none-eabi-ar") // To avoid "has no symbols" warnings
         .compile("lvgl");
 
     let mut cc_args = vec![
