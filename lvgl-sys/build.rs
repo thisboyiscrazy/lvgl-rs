@@ -62,7 +62,6 @@ fn main() {
     add_c_files(&mut cfg, vendor_src.join("lv_misc"));
     add_c_files(&mut cfg, vendor_src.join("lv_themes"));
     add_c_files(&mut cfg, vendor_src.join("lv_widgets"));
-    add_c_files(&mut cfg, &lv_config_dir);
     add_c_files(&mut cfg, &shims_dir);
 
     cfg.define("LV_CONF_INCLUDE_SIMPLE", Some("1"))
@@ -131,6 +130,7 @@ fn main() {
 }
 
 fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
+    eprintln!("Reading {}", path.as_ref().display());
     for e in path.as_ref().read_dir().unwrap() {
         let e = e.unwrap();
         let path = e.path();
