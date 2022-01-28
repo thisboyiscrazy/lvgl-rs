@@ -38,6 +38,7 @@ impl Arc {
     // }
 }
 
+/*
 /// The different parts, of an arc object.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
@@ -54,3 +55,5 @@ impl From<ArcPart> for u8 {
         part as u8
     }
 }
+
+*/

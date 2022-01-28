@@ -1,3 +1,4 @@
+/*
 pub enum GaugePart {
     Main,
     Major,
@@ -13,3 +14,5 @@ impl From<GaugePart> for u8 {
         }
     }
 }
+
+*/

@@ -1,38 +1,28 @@
 use crate::lv_core::style::Style;
-use crate::Box;
-use crate::{Align, LvError, LvResult};
+use crate::{Box, Align};
 use core::ptr;
 
 /// Represents a native LVGL object
 pub trait NativeObject {
     /// Provide common way to access to the underlying native object pointer.
-    fn raw(&self) -> LvResult<ptr::NonNull<lvgl_sys::lv_obj_t>>;
+    fn raw(&self) -> ptr::NonNull<lvgl_sys::lv_obj_t>;
 }
 
 /// Generic LVGL object.
 ///
 /// This is the parent object of all widget types. It stores the native LVGL raw pointer.
 pub struct Obj {
-    // We use a raw pointer here because we do not control this memory address, it is controlled
-    // by LVGL's global state.
-    raw: *mut lvgl_sys::lv_obj_t,
+    raw: ptr::NonNull<lvgl_sys::lv_obj_t>,
 }
 
 impl NativeObject for Obj {
-    fn raw(&self) -> LvResult<ptr::NonNull<lvgl_sys::lv_obj_t>> {
-        if let Some(non_null_ptr) = ptr::NonNull::new(self.raw) {
-            Ok(non_null_ptr)
-        } else {
-            Err(LvError::InvalidReference)
-        }
+    fn raw(&self) -> ptr::NonNull<lvgl_sys::lv_obj_t> {
+        self.raw
     }
 }
 
 /// A wrapper for all LVGL common operations on generic objects.
 pub trait Widget: NativeObject {
-    type SpecialEvent;
-    type Part: Into<u8>;
-
     /// Construct an instance of the object from a raw pointer.
     ///
     /// # Safety
@@ -40,80 +30,84 @@ pub trait Widget: NativeObject {
     ///
     unsafe fn from_raw(raw_pointer: ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self;
 
-    fn add_style(&self, part: Self::Part, style: Style) -> LvResult<()> {
+    fn add_style(&self, style: Style, part: Part, state: State) {
+        let part: lvgl_sys::lv_part_t = part.into();
+        let selector = part | state.bits() as u32;
+
         unsafe {
-            lvgl_sys::lv_obj_add_style(self.raw()?.as_mut(), part.into(), Box::into_raw(style.raw));
+            lvgl_sys::lv_obj_add_style(
+                self.raw().as_mut(),
+                Box::into_raw(style.raw),
+                selector
+            );
         };
-        Ok(())
     }
 
-    fn set_pos(&mut self, x: i16, y: i16) -> LvResult<()> {
+    fn set_pos(&mut self, x: i16, y: i16) {
         unsafe {
             lvgl_sys::lv_obj_set_pos(
-                self.raw()?.as_mut(),
+                self.raw().as_mut(),
                 x as lvgl_sys::lv_coord_t,
                 y as lvgl_sys::lv_coord_t,
             );
         }
-        Ok(())
     }
 
-    fn set_size(&mut self, w: i16, h: i16) -> LvResult<()> {
+    fn set_size(&mut self, w: i16, h: i16) {
         unsafe {
             lvgl_sys::lv_obj_set_size(
-                self.raw()?.as_mut(),
+                self.raw().as_mut(),
                 w as lvgl_sys::lv_coord_t,
                 h as lvgl_sys::lv_coord_t,
             );
         }
-        Ok(())
     }
 
-    fn set_width(&mut self, w: u32) -> LvResult<()> {
+    fn set_width(&mut self, w: u32) {
         unsafe {
-            lvgl_sys::lv_obj_set_width(self.raw()?.as_mut(), w as lvgl_sys::lv_coord_t);
+            lvgl_sys::lv_obj_set_width(
+                self.raw().as_mut(),
+                w as lvgl_sys::lv_coord_t
+            );
         }
-        Ok(())
     }
 
-    fn set_height(&mut self, h: u32) -> LvResult<()> {
+    fn set_height(&mut self, h: u32) {
         unsafe {
-            lvgl_sys::lv_obj_set_height(self.raw()?.as_mut(), h as lvgl_sys::lv_coord_t);
+            lvgl_sys::lv_obj_set_height(
+                self.raw().as_mut(),
+                h as lvgl_sys::lv_coord_t
+            );
         }
-        Ok(())
     }
 
-    fn set_align<C>(&mut self, base: &mut C, align: Align, x_mod: i32, y_mod: i32) -> LvResult<()>
+    fn align_to<C>(&mut self, base: &C, align: Align, x_mod: i32, y_mod: i32)
     where
         C: NativeObject,
     {
         unsafe {
-            lvgl_sys::lv_obj_align(
-                self.raw()?.as_mut(),
-                base.raw()?.as_mut(),
+            lvgl_sys::lv_obj_align_to(
+                self.raw().as_mut(),
+                base.raw().as_ptr(),
                 align.into(),
                 x_mod as lvgl_sys::lv_coord_t,
                 y_mod as lvgl_sys::lv_coord_t,
             );
         }
-        Ok(())
     }
 }
 
 impl Widget for Obj {
-    type SpecialEvent = ();
-    type Part = Part;
-
     unsafe fn from_raw(raw: ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self {
-        Self { raw: raw.as_ptr() }
+        Self { raw }
     }
 }
 
 impl Default for Obj {
     fn default() -> Self {
-        Self {
-            raw: unsafe { lvgl_sys::lv_obj_create(ptr::null_mut(), ptr::null_mut()) },
-        }
+        let raw = unsafe { lvgl_sys::lv_obj_create(ptr::null_mut()) };
+        let raw = ptr::NonNull::new(raw).expect("OOM");
+        Self { raw }
     }
 }
 
@@ -138,38 +132,49 @@ macro_rules! define_object {
         unsafe impl Send for $item {}
 
         impl $item {
-            pub fn on_event<F>(&mut self, f: F) -> $crate::LvResult<()>
+            fn on_event_inner<F>(&mut self, f: F, event: Option<$crate::support::Event>)
             where
-                F: FnMut(Self, $crate::support::Event<<Self as $crate::Widget>::SpecialEvent>),
+                F: FnMut(Self, $crate::support::Event, Option<$crate::Obj>),
             {
                 use $crate::NativeObject;
                 unsafe {
-                    let mut raw = self.raw()?;
-                    let obj = raw.as_mut();
                     let user_closure = $crate::Box::new(f);
-                    obj.user_data = $crate::Box::into_raw(user_closure) as *mut cty::c_void;
-                    lvgl_sys::lv_obj_set_event_cb(
-                        obj,
+                    let user_data = $crate::Box::into_raw(user_closure) as *mut cty::c_void;
+                    let event = event.map(|e| e.into()).unwrap_or(lvgl_sys::lv_event_code_t_LV_EVENT_ALL);
+                    lvgl_sys::lv_obj_add_event_cb(
+                        self.raw().as_mut(),
                         lvgl_sys::lv_event_cb_t::Some($crate::support::event_callback::<Self, F>),
+                        event,
+                        user_data,
                     );
                 }
-                Ok(())
+            }
+
+            pub fn on_event<F>(&mut self, f: F, event: $crate::support::Event)
+            where
+                F: FnMut(Self, $crate::support::Event, Option<$crate::Obj>),
+            {
+                self.on_event_inner(f, Some(event))
+            }
+
+            pub fn on_any_event<F>(&mut self, f: F)
+            where
+                F: FnMut(Self, $crate::support::Event, Option<$crate::Obj>),
+            {
+                self.on_event_inner(f, None)
             }
         }
 
         impl $crate::NativeObject for $item {
-            fn raw(&self) -> $crate::LvResult<core::ptr::NonNull<lvgl_sys::lv_obj_t>> {
+            fn raw(&self) -> core::ptr::NonNull<lvgl_sys::lv_obj_t> {
                 self.core.raw()
             }
         }
 
         impl $crate::Widget for $item {
-            type SpecialEvent = $event_type;
-            type Part = $part_type;
-
-            unsafe fn from_raw(raw_pointer: core::ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self {
+            unsafe fn from_raw(raw: core::ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self {
                 Self {
-                    core: $crate::Obj::from_raw(raw_pointer),
+                    core: $crate::Obj::from_raw(raw),
                 }
             }
         }
@@ -177,40 +182,91 @@ macro_rules! define_object {
 }
 
 bitflags! {
-    pub struct State: u32 {
+    pub struct State: u16 {
         /// Normal, released
-        const DEFAULT  = lvgl_sys::LV_STATE_DEFAULT;
+        const DEFAULT  = lvgl_sys::LV_STATE_DEFAULT as u16;
         /// Toggled or checked
-        const CHECKED  = lvgl_sys::LV_STATE_CHECKED;
+        const CHECKED  = lvgl_sys::LV_STATE_CHECKED as u16;
         /// Focused via keypad or encoder or clicked via touchpad/mouse
-        const FOCUSED  = lvgl_sys::LV_STATE_FOCUSED;
+        const FOCUSED  = lvgl_sys::LV_STATE_FOCUSED as u16;
+        /// Focused via a keypad
+        const FOCUS_KEY = lvgl_sys::LV_STATE_FOCUS_KEY as u16;
         /// Edit by an encoder
-        const EDITED   = lvgl_sys::LV_STATE_EDITED;
+        const EDITED   = lvgl_sys::LV_STATE_EDITED as u16;
         /// Hovered by mouse (not supported now)
-        const HOVERED  = lvgl_sys::LV_STATE_HOVERED;
+        const HOVERED  = lvgl_sys::LV_STATE_HOVERED as u16;
         /// Pressed
-        const PRESSED  = lvgl_sys::LV_STATE_PRESSED;
+        const PRESSED  = lvgl_sys::LV_STATE_PRESSED as u16;
+        /// SCrolled
+        const SCROLLED = lvgl_sys::LV_STATE_SCROLLED as u16;
         /// Disabled or inactive
-        const DISABLED = lvgl_sys::LV_STATE_DISABLED;
+        const DISABLED = lvgl_sys::LV_STATE_DISABLED as u16;
+
+        const USER_1 = lvgl_sys::LV_STATE_USER_1 as u16;
+        const USER_2 = lvgl_sys::LV_STATE_USER_2 as u16;
+        const USER_3 = lvgl_sys::LV_STATE_USER_3 as u16;
+        const USER_4 = lvgl_sys::LV_STATE_USER_4 as u16;
+
+        const ANY = lvgl_sys::LV_STATE_ANY as u16;
     }
 }
 
+/*
 impl State {
-    pub(crate) fn get_bits(&self) -> u32 {
+    pub(crate) fn get_bits(&self) -> u16 {
         self.bits
+    }
+}
+*/
+
+impl Default for State {
+    fn default() -> Self {
+        Self::DEFAULT
     }
 }
 
 pub enum Part {
+    /// A background like rectangle
     Main,
-    All,
+    /// The scrollbar(s)
+    Scrollbar,
+    /// Indicator, e.g. for slider, bar, switch, or the tick box of the checkbox
+    Indicator,
+    /// Like handle to grab to adjust the value
+    Knob,
+    /// Indicate the currently selected option or section,
+    Selected,
+    /// Used if the widget has multiple similar elements (e.g. table cells)
+    Items,
+    /// Ticks on scale e.g. for a chart or meter
+    Ticks,
+    /// Mark a specific place e.g. for text area's cursor or on a chart
+    Cursor,
+    /// Extension point for custom widgets
+    CustomFirst,
+    /// Special value can be used in some functions to target all parts
+    Any,
 }
 
-impl Into<u8> for Part {
-    fn into(self) -> u8 {
+impl Default for Part {
+    fn default() -> Self {
+        Self::Main
+    }
+}
+
+impl Into<lvgl_sys::lv_part_t> for Part {
+    fn into(self) -> lvgl_sys::lv_part_t {
         match self {
-            Part::Main => lvgl_sys::LV_OBJ_PART_MAIN as u8,
-            Part::All => lvgl_sys::LV_OBJ_PART_ALL as u8,
+            Part::Main => lvgl_sys::LV_PART_MAIN,
+            Part::Scrollbar => lvgl_sys::LV_PART_SCROLLBAR,
+            Part::Indicator => lvgl_sys::LV_PART_INDICATOR,
+            Part::Knob => lvgl_sys::LV_PART_KNOB,
+            Part::Selected => lvgl_sys::LV_PART_SELECTED,
+            Part::Items => lvgl_sys::LV_PART_ITEMS,
+            Part::Ticks => lvgl_sys::LV_PART_TICKS,
+            Part::Cursor => lvgl_sys::LV_PART_CURSOR,
+            Part::CustomFirst => lvgl_sys::LV_PART_CUSTOM_FIRST,
+            Part::Any => lvgl_sys::LV_PART_ANY,
         }
     }
 }

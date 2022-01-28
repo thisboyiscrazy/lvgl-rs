@@ -1,3 +1,4 @@
+/*
 use crate::widgets::Label;
 use crate::{LvResult, NativeObject};
 
@@ -18,3 +19,5 @@ pub enum LabelAlign {
     Right = lvgl_sys::LV_LABEL_ALIGN_RIGHT as u8,
     Auto = lvgl_sys::LV_LABEL_ALIGN_AUTO as u8,
 }
+
+*/

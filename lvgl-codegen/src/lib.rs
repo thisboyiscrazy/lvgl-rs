@@ -65,7 +65,7 @@ impl Rusty for LvWidget {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LvFunc {
     name: String,
     args: Vec<LvArg>,
@@ -99,21 +99,17 @@ impl Rusty for LvFunc {
         if new_name.as_str().eq("create") {
             return Ok(quote! {
 
-                pub fn new<C>(parent: &mut C) -> crate::LvResult<Self>
+                pub fn new<C>(parent: &mut C) -> Self
                 where
                     C: crate::NativeObject,
                 {
                     unsafe {
-                        let ptr = lvgl_sys::#original_func_name(parent.raw()?.as_mut(), core::ptr::null_mut());
-                        if let Some(raw) = core::ptr::NonNull::new(ptr) {
-                            let core = <crate::Obj as crate::Widget>::from_raw(raw);
-                            Ok(Self { core })
-                        } else {
-                            Err(crate::LvError::InvalidReference)
-                        }
+                        let ptr = lvgl_sys::#original_func_name(parent.raw().as_mut());
+                        let raw = core::ptr::NonNull::new(ptr).expect("OOM");
+                        let core = <crate::Obj as crate::Widget>::from_raw(raw);
+                        Self { core }
                     }
                 }
-
             });
         }
 
@@ -184,7 +180,7 @@ impl Rusty for LvFunc {
             .fold(quote!(), |args, (i, arg)| {
                 // if first arg is `const`, then it should be immutable
                 let next_arg = if i == 0 {
-                    quote!(self.core.raw()?.as_mut())
+                    quote!(self.core.raw().as_mut())
                 } else {
                     let var = arg.get_value_usage();
                     quote!(#var)
@@ -202,12 +198,11 @@ impl Rusty for LvFunc {
 
         // TODO: Handle methods that return types
         Ok(quote! {
-            pub fn #func_name(#args_decl) -> crate::LvResult<()> {
+            pub fn #func_name(#args_decl) {
                 #args_processing
                 unsafe {
                     lvgl_sys::#original_func_name(#args_call);
                 }
-                Ok(())
             }
         })
     }
@@ -239,7 +234,7 @@ impl From<ForeignItemFn> for LvFunc {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LvArg {
     name: String,
     typ: LvType,
@@ -300,24 +295,21 @@ impl Rusty for LvArg {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LvType {
     literal_name: String,
-    _r_type: Option<Box<syn::Type>>,
 }
 
 impl LvType {
     pub fn new(literal_name: String) -> Self {
         Self {
             literal_name,
-            _r_type: None,
         }
     }
 
     pub fn from(r_type: Box<syn::Type>) -> Self {
         Self {
             literal_name: r_type.to_token_stream().to_string(),
-            _r_type: Some(r_type),
         }
     }
 
@@ -403,7 +395,7 @@ impl CodeGen {
 
         functions
             .iter()
-            .filter(|e| create_func.is_match(e.name.as_str()) && e.args.len() == 2)
+            .filter(|e| create_func.is_match(e.name.as_str()) && e.args.len() == 1)
             .map(|f| {
                 String::from(
                     create_func
@@ -542,7 +534,7 @@ mod test {
         let expected_code = quote! {
             pub fn set_bg_end_angle(&mut self, end: u16) -> crate::LvResult<()> {
                 unsafe {
-                    lvgl_sys::lv_arc_set_bg_end_angle(self.core.raw()?.as_mut(), end);
+                    lvgl_sys::lv_arc_set_bg_end_angle(self.core.raw().as_mut(), end);
                 }
                 Ok(())
             }
@@ -575,7 +567,7 @@ mod test {
             pub fn set_text(&mut self, text: &cstr_core::CStr) -> crate::LvResult<()> {
                 unsafe {
                     lvgl_sys::lv_label_set_text(
-                        self.core.raw()?.as_mut(),
+                        self.core.raw().as_mut(),
                         text.as_ptr()
                     );
                 }
@@ -637,13 +629,10 @@ mod test {
                 {
 
                     unsafe {
-                        let ptr = lvgl_sys::lv_arc_create(parent.raw()?.as_mut(), core::ptr::null_mut());
-                        if let Some(raw) = core::ptr::NonNull::new(ptr) {
-                            let core = <crate::Obj as crate::Widget>::from_raw(raw);
-                            Ok(Self { core })
-                        } else {
-                            Err(crate::LvError::InvalidReference)
-                        }
+                        let ptr = lvgl_sys::lv_arc_create(parent.raw().as_mut());
+                        let raw = core::ptr::NonNull::new(ptr).except("OOM");
+                        let core = <crate::Obj as crate::Widget>::from_raw(raw);
+                        Ok(Self { core })
                     }
                 }
             }

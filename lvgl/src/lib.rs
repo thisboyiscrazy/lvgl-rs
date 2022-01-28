@@ -56,7 +56,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 // Initialize LVGL only once.
 static LVGL_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
-pub(crate) fn lvgl_init() {
+pub(crate) fn lvgl_ensure_init() {
     if LVGL_INITIALIZED
         .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
         .is_ok()

@@ -1,3 +1,4 @@
+/*
 use crate::support::Animation;
 use crate::widgets::Bar;
 use crate::{LvResult, NativeObject};
@@ -19,7 +20,9 @@ impl Bar {
         Ok(())
     }
 }
+*/
 
+/*
 /// The different parts, of a bar object.
 pub enum BarPart {
     /// The background of the bar.
@@ -37,3 +40,5 @@ impl From<BarPart> for u8 {
         }
     }
 }
+
+*/
