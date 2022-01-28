@@ -54,14 +54,7 @@ fn main() {
     };
 
     let mut cfg = Build::new();
-    add_c_files(&mut cfg, vendor_src.join("lv_core"));
-    add_c_files(&mut cfg, vendor_src.join("lv_draw"));
-    add_c_files(&mut cfg, vendor_src.join("lv_font"));
-    add_c_files(&mut cfg, vendor_src.join("lv_gpu"));
-    add_c_files(&mut cfg, vendor_src.join("lv_hal"));
-    add_c_files(&mut cfg, vendor_src.join("lv_misc"));
-    add_c_files(&mut cfg, vendor_src.join("lv_themes"));
-    add_c_files(&mut cfg, vendor_src.join("lv_widgets"));
+    add_c_files(&mut cfg, &vendor_src);
     add_c_files(&mut cfg, &shims_dir);
 
     cfg.define("LV_CONF_INCLUDE_SIMPLE", Some("1"))
@@ -131,14 +124,10 @@ fn main() {
 }
 
 fn add_c_files(build: &mut cc::Build, path: impl AsRef<Path>) {
-    eprintln!("Reading {}", path.as_ref().display());
-    for e in path.as_ref().read_dir().unwrap() {
-        let e = e.unwrap();
-        let path = e.path();
-        if e.file_type().unwrap().is_dir() {
-            // skip dirs for now
-        } else if path.extension().and_then(|s| s.to_str()) == Some("c") {
-            build.file(&path);
+    for entry in glob::glob(path.as_ref().join("**/*.c").to_str().unwrap()).unwrap() {
+        let path = entry.unwrap();
+        if path.extension().and_then(|s| s.to_str()) == Some("c") {
+           build.file(&path);
         }
     }
 }
