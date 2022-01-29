@@ -31,8 +31,8 @@ use ::alloc::boxed::Box;
 #[cfg(feature = "lvgl_alloc")]
 mod allocator;
 
+#[macro_use]
 mod support;
-mod ui;
 #[macro_use]
 mod lv_core;
 pub mod widgets;
@@ -48,21 +48,3 @@ pub(crate) mod mem;
 use crate::mem::Box;
 
 pub use lv_core::*;
-pub use support::*;
-pub use ui::*;
-
-use core::sync::atomic::{AtomicBool, Ordering};
-
-// Initialize LVGL only once.
-static LVGL_INITIALIZED: AtomicBool = AtomicBool::new(false);
-
-pub(crate) fn lvgl_ensure_init() {
-    if LVGL_INITIALIZED
-        .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
-        .is_ok()
-    {
-        unsafe {
-            lvgl_sys::lv_init();
-        }
-    }
-}

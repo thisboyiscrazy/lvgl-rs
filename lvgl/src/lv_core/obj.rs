@@ -132,9 +132,9 @@ macro_rules! define_object {
         unsafe impl Send for $item {}
 
         impl $item {
-            fn on_event_inner<F>(&mut self, f: F, event: Option<$crate::support::Event>)
+            fn on_event_inner<F>(&mut self, f: F, event: Option<$crate::Event>)
             where
-                F: FnMut(Self, $crate::support::Event, Option<$crate::Obj>),
+                F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
             {
                 use $crate::NativeObject;
                 unsafe {
@@ -143,23 +143,23 @@ macro_rules! define_object {
                     let event = event.map(|e| e.into()).unwrap_or(lvgl_sys::lv_event_code_t_LV_EVENT_ALL);
                     lvgl_sys::lv_obj_add_event_cb(
                         self.raw().as_mut(),
-                        lvgl_sys::lv_event_cb_t::Some($crate::support::event_callback::<Self, F>),
+                        lvgl_sys::lv_event_cb_t::Some($crate::event_callback::<Self, F>),
                         event,
                         user_data,
                     );
                 }
             }
 
-            pub fn on_event<F>(&mut self, f: F, event: $crate::support::Event)
+            pub fn on_event<F>(&mut self, f: F, event: $crate::Event)
             where
-                F: FnMut(Self, $crate::support::Event, Option<$crate::Obj>),
+                F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
             {
                 self.on_event_inner(f, Some(event))
             }
 
             pub fn on_any_event<F>(&mut self, f: F)
             where
-                F: FnMut(Self, $crate::support::Event, Option<$crate::Obj>),
+                F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
             {
                 self.on_event_inner(f, None)
             }

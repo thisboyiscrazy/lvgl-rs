@@ -1,55 +1,30 @@
 use crate::Box;
 use crate::{Obj, Widget};
-use core::marker::PhantomData;
-use core::mem::MaybeUninit;
-use core::ptr;
-use core::ptr::NonNull;
-use embedded_graphics_core::draw_target::DrawTarget;
-use embedded_graphics_core::prelude::OriginDimensions;
-use embedded_graphics_core::primitives::Rectangle;
-use core::ops::{Deref, DerefMut};
 
-// This gives us something like "pub type PixelColor = embedded_graphics_core::pixel_color::Rgb565;"
+use core::{
+    marker::PhantomData,
+    mem::MaybeUninit,
+    ptr::{self, NonNull},
+    ops::{Deref, DerefMut},
+};
+
+use embedded_graphics_core::{
+    prelude::*,
+    draw_target::DrawTarget,
+    primitives::Rectangle,
+};
+
+// This gives us "pub type PixelColor = embedded_graphics_core::pixel_color::Rgb565;" with the right color
 include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
 
-pub struct Lvgl {}
-
-impl Lvgl {
-    pub fn new() -> Self {
-        crate::lvgl_ensure_init();
-        Self {}
-    }
-
-    /// Pass in the drawing buffers. See https://docs.lvgl.io/master/porting/display.html
-    /// PixelColor is aliased to the color type configured by lv_conf.h
-    /// 1/10th of the screen size is recommended for the size.
-    // Note that we take references, because we want to be able to take special
-    // addresses (like DMA regions), or static buffers, or stack allocated buffers.
-    pub fn add_display<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions>(
-        draw_buffer: &'a mut [PixelColor],
-        display: T
-    ) -> Display<'a, T>
-    {
-        Display::new(draw_buffer, display)
-    }
-
-    /// Call this with good accuracy so LVGL knows about time passing
-    pub fn tick_inc(&mut self, millis_since_last_tick: u32) {
-        unsafe {
-            lvgl_sys::lv_tick_inc(millis_since_last_tick)
-        }
-    }
-
-    /// Call this every few milliseconds to handle LVGL tasks
-    pub fn timer_handler(&mut self) {
-        unsafe {
-            lvgl_sys::lv_timer_handler();
-        }
-    }
-}
+/// `Display` represents a display for Lvgl
+/// Limitations:
+/// * No async drawing, no double buffering
+/// * No color conversion. lv_conf.h specifies what embedded_graphics display you can use
+/// * Resources are not released when the display goes out of scope.
 
 pub struct Display<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> {
-    // Only one display for now.
+    // Also, we never release anything
     _disp_draw_buf: Box<lvgl_sys::lv_disp_draw_buf_t>,
     _disp_drv: Box<lvgl_sys::lv_disp_drv_t>,
     disp: *mut lvgl_sys::lv_disp_t,
@@ -58,12 +33,7 @@ pub struct Display<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> {
 }
 
 impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'a, T> {
-    /// Pass in the drawing buffer. See https://docs.lvgl.io/master/porting/display.html
-    /// PixelColor is aliased to the color type configured by lv_conf.h
-    /// 1/10th of the screen size is recommended for the size.
-    // Note that we take references, because we want to be able to take special
-    // addresses (like DMA regions), or static buffers, or stack allocated buffers.
-    fn new(
+    pub(crate) fn new(
         draw_buffer: &'a mut [PixelColor],
         display: T,
     ) -> Self {
@@ -117,13 +87,13 @@ impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'a, T> {
 impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> Deref for Display<'a, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        self.display.as_ref()
+        self.display.deref()
     }
 }
 
 impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> DerefMut for Display<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.display.as_mut()
+        self.display.deref_mut()
     }
 }
 
