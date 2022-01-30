@@ -16,3 +16,6 @@ pub use lvgl::*;
 
 mod display;
 pub use display::*;
+
+mod input_device;
+pub use input_device::*;

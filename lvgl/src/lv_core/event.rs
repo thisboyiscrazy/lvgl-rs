@@ -1,6 +1,8 @@
-use crate::support::native_enum;
+//use crate::macros::native_enum;
 
+use alloc::boxed::Box;
 use crate::{Obj, Widget};
+
 use core::convert::TryInto;
 use core::ptr::NonNull;
 
@@ -113,7 +115,29 @@ native_enum! {
     }
 }
 
-pub(crate) unsafe extern "C" fn event_callback<T, F>(
+
+/// FIXME This is not ideal. This will get duplicated for each callback, and eat all our ROM
+
+pub(crate) fn add_event_cb<T, F>(target: &mut T, cb: F, event: Option<Event>)
+where
+    T: Widget + Sized,
+    F: FnMut(T, Event, Option<Obj>),
+{
+    let user_closure = Box::new(cb);
+    let user_data = Box::into_raw(user_closure) as *mut cty::c_void;
+    let event = event.map(|e| e.into()).unwrap_or(lvgl_sys::lv_event_code_t_LV_EVENT_ALL);
+
+    unsafe {
+        lvgl_sys::lv_obj_add_event_cb(
+            target.raw().as_mut(),
+            Some(event_callback::<T, F>),
+            event,
+            user_data,
+        );
+    }
+}
+
+unsafe extern "C" fn event_callback<T, F>(
     event: *mut lvgl_sys::lv_event_t,
 ) where
     T: Widget + Sized,

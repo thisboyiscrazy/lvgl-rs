@@ -1,4 +1,4 @@
-use crate::Box;
+use alloc::boxed::Box;
 use crate::{Obj, Widget};
 
 use core::{
@@ -21,22 +21,21 @@ include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
 /// Limitations:
 /// * No async drawing, no double buffering
 /// * No color conversion. lv_conf.h specifies what embedded_graphics display you can use
-/// * Resources are not released when the display goes out of scope.
+/// * Resources are leaked when `Display` is dropped
 
-pub struct Display<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> {
-    // Also, we never release anything
-    _disp_draw_buf: Box<lvgl_sys::lv_disp_draw_buf_t>,
-    _disp_drv: Box<lvgl_sys::lv_disp_drv_t>,
+pub struct Display<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions> {
+    // We box because we need stable addresses. We could also use the Pin trait.
     disp: *mut lvgl_sys::lv_disp_t,
     display: Box<T>,
-    _phantom: PhantomData<&'a mut ()>,
+    _phantom: PhantomData<&'draw_buf mut ()>,
 }
 
-impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'a, T> {
+impl<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'draw_buf, T> {
     pub(crate) fn new(
-        draw_buffer: &'a mut [PixelColor],
+        draw_buffer: &'draw_buf mut [MaybeUninit<PixelColor>],
         display: T,
     ) -> Self {
+        // We box the display to pin its address. This way, we can operate on it in the callback.
         let mut display = Box::new(display);
 
         let mut disp_draw_buf = unsafe {
@@ -66,9 +65,11 @@ impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'a, T> {
             lvgl_sys::lv_disp_drv_register(disp_drv.as_mut())
         };
 
+        // If we wanted to cleanup resources on drop, these would have to be freed.
+        Box::into_raw(disp_draw_buf);
+        Box::into_raw(disp_drv);
+
         Self {
-            _disp_draw_buf: disp_draw_buf,
-            _disp_drv: disp_drv,
             disp,
             display,
             _phantom: PhantomData,

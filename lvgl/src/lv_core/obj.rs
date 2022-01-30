@@ -1,6 +1,7 @@
 use crate::lv_core::style::Style;
-use crate::{Box, Align};
+use crate::Align;
 use core::ptr;
+use alloc::boxed::Box;
 
 /// Represents a native LVGL object
 pub trait NativeObject {
@@ -132,36 +133,18 @@ macro_rules! define_object {
         unsafe impl Send for $item {}
 
         impl $item {
-            fn on_event_inner<F>(&mut self, f: F, event: Option<$crate::Event>)
-            where
-                F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
-            {
-                use $crate::NativeObject;
-                unsafe {
-                    let user_closure = $crate::Box::new(f);
-                    let user_data = $crate::Box::into_raw(user_closure) as *mut cty::c_void;
-                    let event = event.map(|e| e.into()).unwrap_or(lvgl_sys::lv_event_code_t_LV_EVENT_ALL);
-                    lvgl_sys::lv_obj_add_event_cb(
-                        self.raw().as_mut(),
-                        lvgl_sys::lv_event_cb_t::Some($crate::event_callback::<Self, F>),
-                        event,
-                        user_data,
-                    );
-                }
-            }
-
             pub fn on_event<F>(&mut self, f: F, event: $crate::Event)
             where
                 F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
             {
-                self.on_event_inner(f, Some(event))
+                $crate::add_event_cb(self, f, Some(event));
             }
 
             pub fn on_any_event<F>(&mut self, f: F)
             where
                 F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
             {
-                self.on_event_inner(f, None)
+                $crate::add_event_cb(self, f, None);
             }
         }
 
@@ -179,6 +162,36 @@ macro_rules! define_object {
             }
         }
     };
+}
+
+// Adapted from https://stackoverflow.com/questions/28028854/how-do-i-match-enum-values-with-an-integer
+macro_rules! native_enum {
+    ($native_type:ty,
+        $(#[$meta:meta])* $vis:vis enum $name:ident {
+        $($(#[$vmeta:meta])* $vname:ident $(= $val:expr)?,)*
+    }) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $($(#[$vmeta])* $vname $(= $val as isize)?,)*
+        }
+
+        impl core::convert::TryFrom<$native_type> for $name {
+            type Error = ();
+
+            fn try_from(v: $native_type) -> Result<Self, Self::Error> {
+                match v {
+                    $(x if x == $name::$vname as $native_type => Ok($name::$vname),)*
+                    _ => Err(()),
+                }
+            }
+        }
+
+        impl From<$name> for $native_type {
+            fn from(v: $name) -> Self {
+                v as $native_type
+            }
+        }
+    }
 }
 
 bitflags! {

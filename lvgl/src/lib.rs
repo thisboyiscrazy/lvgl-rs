@@ -16,35 +16,14 @@
 
 #[macro_use]
 extern crate bitflags;
-
-#[cfg(feature = "lvgl_alloc")]
 extern crate alloc;
-
-// We can ONLY use `alloc::boxed::Box` if `lvgl_alloc` is enabled.
-// That is because we use `Box` to send memory references to LVGL. Since the global allocator, when
-// `lvgl_alloc` feature is enabled, is the LVGL memory manager then everything is in LVGL
-// managed memory anyways. In that case we can use the Rust's provided Box definition.
-//
-#[cfg(feature = "lvgl_alloc")]
-use ::alloc::boxed::Box;
 
 #[cfg(feature = "lvgl_alloc")]
 mod allocator;
 
 #[macro_use]
-mod support;
-#[macro_use]
 mod lv_core;
+
 pub mod widgets;
-
-#[cfg(not(feature = "lvgl_alloc"))]
-pub(crate) mod mem;
-
-// When LVGL allocator is not used on the Rust code, we need a way to add objects to the LVGL
-// managed memory. We implement a very simple `Box` that has the minimal features to copy memory
-// safely to the LVGL managed memory.
-//
-#[cfg(not(feature = "lvgl_alloc"))]
-use crate::mem::Box;
 
 pub use lv_core::*;

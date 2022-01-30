@@ -1,4 +1,4 @@
-use crate::Box;
+use alloc::boxed::Box;
 use core::mem;
 
 pub enum Themes {
