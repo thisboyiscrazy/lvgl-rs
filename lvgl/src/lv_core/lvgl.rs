@@ -41,6 +41,7 @@ impl Lvgl {
     // Note that we take references, because we want to be able to take special
     // addresses (like DMA regions), or static buffers, or stack allocated buffers.
     pub fn register_display<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions>(
+        &self,
         draw_buffer: &'a mut [MaybeUninit<PixelColor>],
         display: T
     ) -> Display<'a, T>

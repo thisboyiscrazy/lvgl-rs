@@ -1,9 +1,9 @@
 use alloc::boxed::Box;
-use crate::{Obj, Widget};
+use crate::{Obj, Widget, InputDeviceEvent};
 
 use core::{
     marker::PhantomData,
-    mem::MaybeUninit,
+    mem::{self, MaybeUninit},
     ptr::{self, NonNull},
     ops::{Deref, DerefMut},
 };
@@ -57,7 +57,7 @@ impl<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'d
             disp_drv.hor_res = display.size().width as i16;
             disp_drv.ver_res = display.size().height as i16;
             disp_drv.flush_cb = Some(display_flush_cb::<T>);
-            disp_drv.user_data = (display.as_mut() as *mut T) as *mut cty::c_void;
+            disp_drv.user_data = mem::transmute(display.as_mut());
             disp_drv
         };
 
@@ -82,6 +82,14 @@ impl<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<'d
             let obj_ptr = NonNull::new(obj_ptr).unwrap();
             Obj::from_raw(obj_ptr)
         }
+    }
+
+    pub fn register_input_device<F, I>(&self, event_generator: F)
+    where
+        F: Fn() -> I + 'static,
+        I: InputDeviceEvent,
+    {
+        super::input_device::register_input_device(self.disp, event_generator);
     }
 }
 
@@ -110,7 +118,8 @@ unsafe extern "C" fn display_flush_cb<T>(
     // the FFI boundary. Since this library is focused on embedded platforms, we don't
     // have an standard unwinding mechanism to rely upon.
     let disp_drv = disp_drv.as_mut().unwrap();
-    let display = (disp_drv.user_data as *mut T).as_mut().unwrap();
+    let display_ptr: *mut T = mem::transmute(disp_drv.user_data);
+    let display = display_ptr.as_mut().unwrap();
 
     let area = Rectangle::with_corners(
         ((*area).x1 as i32, (*area).y1 as i32).into(),
