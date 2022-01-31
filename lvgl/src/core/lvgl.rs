@@ -36,6 +36,7 @@ impl<S> Lvgl<S> {
         Self { _phantom: PhantomData }
     }
 
+    #[cfg(feature = "logger")]
     pub fn register_logger<F>(&mut self, mut f: F)
     where
         F: FnMut(&str) -> () + 'static

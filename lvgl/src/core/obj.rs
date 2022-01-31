@@ -133,18 +133,18 @@ macro_rules! define_object {
         unsafe impl Send for $item {}
 
         impl $item {
-            pub fn on_event<F>(&mut self, f: F, event: $crate::core::Event)
+            pub fn on_event<F>(&mut self, event: $crate::core::Event, f: F)
             where
                 F: FnMut(Self, $crate::core::Event, Option<$crate::core::Obj>),
             {
-                $crate::core::add_event_cb(self, f, Some(event));
+                $crate::core::add_event_cb(self, Some(event), f);
             }
 
             pub fn on_any_event<F>(&mut self, f: F)
             where
                 F: FnMut(Self, $crate::core::Event, Option<$crate::core::Obj>),
             {
-                $crate::core::add_event_cb(self, f, None);
+                $crate::core::add_event_cb(self, None, f);
             }
         }
 
@@ -171,6 +171,7 @@ macro_rules! native_enum {
         $($(#[$vmeta:meta])* $vname:ident $(= $val:expr)?,)*
     }) => {
         $(#[$meta])*
+        #[derive(Debug, Clone, Copy)]
         $vis enum $name {
             $($(#[$vmeta])* $vname $(= $val as isize)?,)*
         }

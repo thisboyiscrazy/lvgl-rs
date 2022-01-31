@@ -40,7 +40,7 @@ impl Default for Style {
 }
 
 bitflags! {
-    pub struct Opacity: u32 {
+    pub struct Opacity: u8 {
         const OPA_TRANSP = lvgl_sys::LV_OPA_TRANSP;
         const OPA_0 = lvgl_sys::LV_OPA_0;
         const OPA_10 = lvgl_sys::LV_OPA_10;
@@ -64,7 +64,7 @@ impl Into<u8> for Opacity {
 }
 
 bitflags! {
-    pub struct StyleProp: u32 {
+    pub struct StyleProp: u16 {
         const PROP_INV = lvgl_sys::lv_style_prop_t_LV_STYLE_PROP_INV;
 
         /*Group 0*/

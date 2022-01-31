@@ -107,6 +107,7 @@ fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let bindings = bindgen::Builder::default()
         .header(shims_dir.join("lvgl_sys.h").to_str().unwrap())
+        //.rustified_enum("lv_indev_state_t")
         .generate_comments(false)
         .derive_default(true)
         .layout_tests(false)

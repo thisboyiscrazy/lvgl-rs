@@ -20,6 +20,7 @@ bitflags = "1.2.1"
 
 [features]
 lvgl_alloc = []
+logger = []
 
 [build-dependencies]
 quote = "1.0.9"

@@ -118,7 +118,7 @@ native_enum! {
 
 /// FIXME This is not ideal. This will get duplicated for each callback, and eat all our ROM
 
-pub(crate) fn add_event_cb<T, F>(target: &mut T, cb: F, event: Option<Event>)
+pub(crate) fn add_event_cb<T, F>(target: &mut T, event: Option<Event>, cb: F)
 where
     T: Widget + Sized,
     F: FnMut(T, Event, Option<Obj>),

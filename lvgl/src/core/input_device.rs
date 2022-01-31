@@ -60,6 +60,7 @@ unsafe extern "C" fn indev_read_cb<F, I, S>(
 
 // Users can add other types (e.g., keyboard) like this one.
 
+#[derive(Debug)]
 pub enum TouchPad {
     Pressed {
         x: lvgl_sys::lv_coord_t,
@@ -77,7 +78,7 @@ impl InputDeviceEvent for TouchPad {
                 data.state = lvgl_sys::lv_indev_state_t_LV_INDEV_STATE_PRESSED;
             }
             TouchPad::Released => {
-                data.state = lvgl_sys::lv_indev_state_t_LV_INDEV_STATE_PRESSED;
+                data.state = lvgl_sys::lv_indev_state_t_LV_INDEV_STATE_RELEASED;
             }
         }
     }
