@@ -26,7 +26,7 @@ unsafe impl<S> Send for Lvgl<S> {}
 impl<S> Lvgl<S> {
     pub fn ensure_init() {
         static HAS_INIT: AtomicBool = AtomicBool::new(false);
-        if HAS_INIT.fetch_or(true, Ordering::Relaxed) {
+        if !HAS_INIT.fetch_or(true, Ordering::Relaxed) {
             unsafe { lvgl_sys::lv_init(); }
         }
     }
@@ -36,7 +36,7 @@ impl<S> Lvgl<S> {
         Self { _phantom: PhantomData }
     }
 
-    pub fn register_logger<F>(&self, mut f: F)
+    pub fn register_logger<F>(&mut self, mut f: F)
     where
         F: FnMut(&str) -> () + 'static
     {
@@ -63,7 +63,7 @@ impl<S> Lvgl<S> {
     // Note that we take references, because we want to be able to take special
     // addresses (like DMA regions), or static buffers, or stack allocated buffers.
     pub fn register_display<T: DrawTarget<Color = PixelColor> + OriginDimensions>(
-        &self,
+        &mut self,
         draw_buffer: &'static mut [MaybeUninit<PixelColor>],
         display: T
     ) -> Display<T, S>
@@ -71,20 +71,13 @@ impl<S> Lvgl<S> {
         Display::new(draw_buffer, display)
     }
 
-    pub fn irq_tick_updater(&self) -> IrqTickUpdater {
-        IrqTickUpdater::new()
-    }
-
-    /// Call this with good accuracy to inform LVGL about time
-    pub fn tick_inc(&mut self, millis_since_last_tick: u32) {
-        unsafe {
-            lvgl_sys::lv_tick_inc(millis_since_last_tick)
-        }
+    pub fn ticks(&self) -> Ticks {
+        Ticks::new()
     }
 
     /// Call this at least every few milliseconds to run LVGL tasks
     /// `app_state` will be provided to registered callbacks.
-    pub fn timer_handler(&mut self, app_state: &mut S) {
+    pub fn run_tasks(&mut self, app_state: &mut S) {
         unsafe {
             assert!(APP_STATE.is_null(), "timer_handler() called recursively");
             APP_STATE = mem::transmute(app_state);
@@ -105,12 +98,12 @@ static mut APP_STATE: *mut () = ptr::null_mut();
 
 // This gives a lifetime to the app state reference.
 // it shouldn't not be kept for longer than the duration of the callback
-pub(crate) struct AppState<S> {
+pub(crate) struct AppStateInCallbacks<S> {
     // No Send/Sync because the lifetime is bounded by timer_handler().
     _phantom: PhantomData<*mut S>,
 }
 
-impl<S> AppState<S> {
+impl<S> AppStateInCallbacks<S> {
     pub(crate) fn global() -> Self {
         Self { _phantom: PhantomData }
     }
@@ -118,21 +111,24 @@ impl<S> AppState<S> {
     pub(crate) fn as_mut(&mut self) -> &mut S {
         unsafe {
             let app_state: *mut S = mem::transmute(APP_STATE);
+            // This should always work. This is only used from our extern C callbacks.
             app_state.as_mut().expect("APP_STATE accessed outside of timer_handler")
         }
     }
 }
 
-pub struct IrqTickUpdater {
+pub struct Ticks {
     _phantom: PhantomData<()>,
 }
 
-impl IrqTickUpdater {
+impl Ticks {
     fn new() -> Self {
         Self { _phantom: PhantomData }
     }
 
-    /// This function is safe to call while lvgl.timer_handler() is running
+    /// Call this with good accuracy to inform LVGL about time.
+    /// This function is safe to call in an interrupt context while
+    /// lvgl.timer_handler() is running.
     pub fn inc(&mut self, millis_since_last_tick: u32) {
         unsafe {
             lvgl_sys::lv_tick_inc(millis_since_last_tick)

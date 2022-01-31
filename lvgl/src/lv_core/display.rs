@@ -25,8 +25,8 @@ include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
 
 pub struct Display<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> {
     // We box because we need stable addresses
-    disp: *mut lvgl_sys::lv_disp_t,
     display: Box<T>,
+    disp: &'static mut lvgl_sys::lv_disp_t,
     _phantom: PhantomData<S>,
 }
 
@@ -55,8 +55,8 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
             lvgl_sys::lv_disp_drv_init(disp_drv.as_mut_ptr());
             let mut disp_drv = Box::new(disp_drv.assume_init());
             disp_drv.draw_buf = disp_draw_buf.as_mut();
-            disp_drv.hor_res = display.size().width as i16;
-            disp_drv.ver_res = display.size().height as i16;
+            disp_drv.hor_res = display.size().width as lvgl_sys::lv_coord_t;
+            disp_drv.ver_res = display.size().height as lvgl_sys::lv_coord_t;
             disp_drv.flush_cb = Some(display_flush_cb::<T>);
             disp_drv.user_data = mem::transmute(display.as_mut());
             disp_drv
@@ -64,6 +64,7 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
 
         let disp = unsafe {
             lvgl_sys::lv_disp_drv_register(disp_drv.as_mut())
+                .as_mut().unwrap()
         };
 
         // If we wanted to cleanup resources on drop, these would have to be freed.
@@ -85,7 +86,7 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
         }
     }
 
-    pub fn register_input_device<F, I>(&self, event_generator: F)
+    pub fn register_input_device<F, I>(&mut self, event_generator: F)
     where
         F: Fn(&mut S) -> I + 'static,
         I: InputDeviceEvent,

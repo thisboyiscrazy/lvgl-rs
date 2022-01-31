@@ -1,6 +1,6 @@
 use core::mem::{self, MaybeUninit};
 use alloc::boxed::Box;
-use crate::AppState;
+use crate::AppStateInCallbacks;
 
 //////////////////
 // Generic trait
@@ -12,7 +12,7 @@ pub trait InputDeviceEvent {
 }
 
 pub fn register_input_device<F, I, S>(
-    disp: *mut lvgl_sys::lv_disp_t,
+    disp: &mut lvgl_sys::lv_disp_t,
     mut event_generator: F,
 ) where
     // We require static because we don't want any references in the closure to disappear
@@ -51,7 +51,7 @@ unsafe extern "C" fn indev_read_cb<F, I, S>(
     let event_generator_ptr: *mut F = mem::transmute(drv.user_data);
     let event_generator = event_generator_ptr.as_mut().unwrap();
 
-    let event = event_generator(AppState::global().as_mut());
+    let event = event_generator(AppStateInCallbacks::global().as_mut());
     event.populate_lv_indev_data(data);
 }
 
