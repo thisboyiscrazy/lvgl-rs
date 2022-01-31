@@ -1,5 +1,5 @@
 use alloc::boxed::Box;
-use crate::{Obj, Widget, InputDeviceEvent};
+use crate::core::{Obj, Widget, InputDeviceEvent};
 
 use core::{
     marker::PhantomData,
@@ -91,7 +91,7 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
         F: Fn(&mut S) -> I + 'static,
         I: InputDeviceEvent,
     {
-        super::input_device::register_input_device(self.disp, event_generator);
+        crate::core::input_device::register_input_device(self.disp, event_generator);
     }
 }
 

@@ -3,7 +3,7 @@ use embedded_graphics_core::{
     draw_target::DrawTarget,
 };
 
-use super::display::{PixelColor, Display};
+use crate::core::display::{PixelColor, Display};
 
 use core::{
     sync::atomic::{AtomicBool, Ordering},
@@ -98,13 +98,13 @@ static mut APP_STATE: *mut () = ptr::null_mut();
 
 // This gives a lifetime to the app state reference.
 // it shouldn't not be kept for longer than the duration of the callback
-pub(crate) struct AppStateInCallbacks<S> {
+pub(crate) struct AppState<S> {
     // No Send/Sync because the lifetime is bounded by timer_handler().
     _phantom: PhantomData<*mut S>,
 }
 
-impl<S> AppStateInCallbacks<S> {
-    pub(crate) fn global() -> Self {
+impl<S> AppState<S> {
+    pub(crate) fn from_callbacks() -> Self {
         Self { _phantom: PhantomData }
     }
 

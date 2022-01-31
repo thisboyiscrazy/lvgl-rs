@@ -1,6 +1,5 @@
 use core::mem::{self, MaybeUninit};
 use alloc::boxed::Box;
-use crate::AppStateInCallbacks;
 
 //////////////////
 // Generic trait
@@ -11,7 +10,7 @@ pub trait InputDeviceEvent {
     fn input_device_type() -> lvgl_sys::lv_indev_type_t;
 }
 
-pub fn register_input_device<F, I, S>(
+pub(crate) fn register_input_device<F, I, S>(
     disp: &mut lvgl_sys::lv_disp_t,
     mut event_generator: F,
 ) where
@@ -37,7 +36,6 @@ pub fn register_input_device<F, I, S>(
     }
 }
 
-
 unsafe extern "C" fn indev_read_cb<F, I, S>(
     drv: *mut lvgl_sys::lv_indev_drv_t,
     data: *mut lvgl_sys::lv_indev_data_t,
@@ -51,7 +49,7 @@ unsafe extern "C" fn indev_read_cb<F, I, S>(
     let event_generator_ptr: *mut F = mem::transmute(drv.user_data);
     let event_generator = event_generator_ptr.as_mut().unwrap();
 
-    let event = event_generator(AppStateInCallbacks::global().as_mut());
+    let event = event_generator(crate::core::AppState::from_callbacks().as_mut());
     event.populate_lv_indev_data(data);
 }
 

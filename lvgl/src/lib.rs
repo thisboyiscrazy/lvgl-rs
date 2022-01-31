@@ -22,8 +22,7 @@ extern crate alloc;
 mod allocator;
 
 #[macro_use]
-mod lv_core;
+pub mod core;
 
 pub mod widgets;
-
-pub use lv_core::*;
+pub mod style;

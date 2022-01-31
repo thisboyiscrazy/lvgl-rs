@@ -1,7 +1,7 @@
 //use crate::macros::native_enum;
 
 use alloc::boxed::Box;
-use crate::{Obj, Widget};
+use crate::core::{Obj, Widget};
 
 use core::convert::TryInto;
 use core::ptr::NonNull;

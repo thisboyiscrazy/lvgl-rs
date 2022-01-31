@@ -1,7 +1,7 @@
-use crate::lv_core::style::Style;
-use crate::Align;
 use core::ptr;
 use alloc::boxed::Box;
+
+use crate::style::{Style, Align, Part, State};
 
 /// Represents a native LVGL object
 pub trait NativeObject {
@@ -127,37 +127,37 @@ macro_rules! define_object {
     };
     ($item:ident, event = $event_type:ty, part = $part_type:ty) => {
         pub struct $item {
-            core: $crate::Obj,
+            core: $crate::core::Obj,
         }
 
         unsafe impl Send for $item {}
 
         impl $item {
-            pub fn on_event<F>(&mut self, f: F, event: $crate::Event)
+            pub fn on_event<F>(&mut self, f: F, event: $crate::core::Event)
             where
-                F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
+                F: FnMut(Self, $crate::core::Event, Option<$crate::core::Obj>),
             {
-                $crate::add_event_cb(self, f, Some(event));
+                $crate::core::add_event_cb(self, f, Some(event));
             }
 
             pub fn on_any_event<F>(&mut self, f: F)
             where
-                F: FnMut(Self, $crate::Event, Option<$crate::Obj>),
+                F: FnMut(Self, $crate::core::Event, Option<$crate::core::Obj>),
             {
-                $crate::add_event_cb(self, f, None);
+                $crate::core::add_event_cb(self, f, None);
             }
         }
 
-        impl $crate::NativeObject for $item {
+        impl $crate::core::NativeObject for $item {
             fn raw(&self) -> core::ptr::NonNull<lvgl_sys::lv_obj_t> {
                 self.core.raw()
             }
         }
 
-        impl $crate::Widget for $item {
+        impl $crate::core::Widget for $item {
             unsafe fn from_raw(raw: core::ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self {
                 Self {
-                    core: $crate::Obj::from_raw(raw),
+                    core: $crate::core::Obj::from_raw(raw),
                 }
             }
         }
@@ -190,96 +190,6 @@ macro_rules! native_enum {
             fn from(v: $name) -> Self {
                 v as $native_type
             }
-        }
-    }
-}
-
-bitflags! {
-    pub struct State: u16 {
-        /// Normal, released
-        const DEFAULT  = lvgl_sys::LV_STATE_DEFAULT as u16;
-        /// Toggled or checked
-        const CHECKED  = lvgl_sys::LV_STATE_CHECKED as u16;
-        /// Focused via keypad or encoder or clicked via touchpad/mouse
-        const FOCUSED  = lvgl_sys::LV_STATE_FOCUSED as u16;
-        /// Focused via a keypad
-        const FOCUS_KEY = lvgl_sys::LV_STATE_FOCUS_KEY as u16;
-        /// Edit by an encoder
-        const EDITED   = lvgl_sys::LV_STATE_EDITED as u16;
-        /// Hovered by mouse (not supported now)
-        const HOVERED  = lvgl_sys::LV_STATE_HOVERED as u16;
-        /// Pressed
-        const PRESSED  = lvgl_sys::LV_STATE_PRESSED as u16;
-        /// SCrolled
-        const SCROLLED = lvgl_sys::LV_STATE_SCROLLED as u16;
-        /// Disabled or inactive
-        const DISABLED = lvgl_sys::LV_STATE_DISABLED as u16;
-
-        const USER_1 = lvgl_sys::LV_STATE_USER_1 as u16;
-        const USER_2 = lvgl_sys::LV_STATE_USER_2 as u16;
-        const USER_3 = lvgl_sys::LV_STATE_USER_3 as u16;
-        const USER_4 = lvgl_sys::LV_STATE_USER_4 as u16;
-
-        const ANY = lvgl_sys::LV_STATE_ANY as u16;
-    }
-}
-
-/*
-impl State {
-    pub(crate) fn get_bits(&self) -> u16 {
-        self.bits
-    }
-}
-*/
-
-impl Default for State {
-    fn default() -> Self {
-        Self::DEFAULT
-    }
-}
-
-pub enum Part {
-    /// A background like rectangle
-    Main,
-    /// The scrollbar(s)
-    Scrollbar,
-    /// Indicator, e.g. for slider, bar, switch, or the tick box of the checkbox
-    Indicator,
-    /// Like handle to grab to adjust the value
-    Knob,
-    /// Indicate the currently selected option or section,
-    Selected,
-    /// Used if the widget has multiple similar elements (e.g. table cells)
-    Items,
-    /// Ticks on scale e.g. for a chart or meter
-    Ticks,
-    /// Mark a specific place e.g. for text area's cursor or on a chart
-    Cursor,
-    /// Extension point for custom widgets
-    CustomFirst,
-    /// Special value can be used in some functions to target all parts
-    Any,
-}
-
-impl Default for Part {
-    fn default() -> Self {
-        Self::Main
-    }
-}
-
-impl Into<lvgl_sys::lv_part_t> for Part {
-    fn into(self) -> lvgl_sys::lv_part_t {
-        match self {
-            Part::Main => lvgl_sys::LV_PART_MAIN,
-            Part::Scrollbar => lvgl_sys::LV_PART_SCROLLBAR,
-            Part::Indicator => lvgl_sys::LV_PART_INDICATOR,
-            Part::Knob => lvgl_sys::LV_PART_KNOB,
-            Part::Selected => lvgl_sys::LV_PART_SELECTED,
-            Part::Items => lvgl_sys::LV_PART_ITEMS,
-            Part::Ticks => lvgl_sys::LV_PART_TICKS,
-            Part::Cursor => lvgl_sys::LV_PART_CURSOR,
-            Part::CustomFirst => lvgl_sys::LV_PART_CUSTOM_FIRST,
-            Part::Any => lvgl_sys::LV_PART_ANY,
         }
     }
 }
