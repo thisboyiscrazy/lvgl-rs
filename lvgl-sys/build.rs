@@ -72,6 +72,7 @@ fn main() {
         "-I",
         vendor.to_str().unwrap(),
         "-fvisibility=default",
+        "-fshort-enums",
     ];
 
     // Set correct target triple for bindgen when cross-compiling
