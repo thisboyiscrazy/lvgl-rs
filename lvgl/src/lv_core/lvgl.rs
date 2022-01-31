@@ -36,18 +36,43 @@ impl<S> Lvgl<S> {
         Self { _phantom: PhantomData }
     }
 
+    pub fn register_logger<F>(&self, mut f: F)
+    where
+        F: FnMut(&str) -> () + 'static
+    {
+        static mut LOGGER: *mut () = ptr::null_mut();
+        unsafe {
+            LOGGER = mem::transmute(&mut f);
+            lvgl_sys::lv_log_register_print_cb(Some(print_cb::<F>));
+        }
+
+        unsafe extern "C" fn print_cb<F>(str: *const cty::c_char)
+        where
+            F: FnMut(&str) -> () + 'static
+        {
+            let logger: *mut F = mem::transmute(LOGGER);
+            let logger = logger.as_mut().unwrap();
+            let str = cstr_core::CStr::from_ptr(str);
+            logger(str.to_string_lossy().as_ref());
+        }
+    }
+
     /// Pass in the drawing buffer. See https://docs.lvgl.io/master/porting/display.html
     /// PixelColor is aliased to the color type configured by lv_conf.h
     /// 1/10th of the screen size is recommended for the size.
     // Note that we take references, because we want to be able to take special
     // addresses (like DMA regions), or static buffers, or stack allocated buffers.
-    pub fn register_display<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions>(
+    pub fn register_display<T: DrawTarget<Color = PixelColor> + OriginDimensions>(
         &self,
-        draw_buffer: &'a mut [MaybeUninit<PixelColor>],
+        draw_buffer: &'static mut [MaybeUninit<PixelColor>],
         display: T
-    ) -> Display<'a, T, S>
+    ) -> Display<T, S>
     {
         Display::new(draw_buffer, display)
+    }
+
+    pub fn irq_tick_updater(&self) -> IrqTickUpdater {
+        IrqTickUpdater::new()
     }
 
     /// Call this with good accuracy to inform LVGL about time
@@ -94,6 +119,23 @@ impl<S> AppState<S> {
         unsafe {
             let app_state: *mut S = mem::transmute(APP_STATE);
             app_state.as_mut().expect("APP_STATE accessed outside of timer_handler")
+        }
+    }
+}
+
+pub struct IrqTickUpdater {
+    _phantom: PhantomData<()>,
+}
+
+impl IrqTickUpdater {
+    fn new() -> Self {
+        Self { _phantom: PhantomData }
+    }
+
+    /// This function is safe to call while lvgl.timer_handler() is running
+    pub fn inc(&mut self, millis_since_last_tick: u32) {
+        unsafe {
+            lvgl_sys::lv_tick_inc(millis_since_last_tick)
         }
     }
 }

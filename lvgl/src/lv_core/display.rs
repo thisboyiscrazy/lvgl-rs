@@ -23,16 +23,17 @@ include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
 /// * No color conversion. lv_conf.h specifies what embedded_graphics display you can use
 /// * Resources are leaked when `Display` is dropped
 
-pub struct Display<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions, S> {
-    // We box because we need stable addresses. We could also use the Pin trait.
+pub struct Display<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> {
+    // We box because we need stable addresses
     disp: *mut lvgl_sys::lv_disp_t,
     display: Box<T>,
-    _phantom: PhantomData<(S, &'draw_buf mut ())>,
+    _phantom: PhantomData<S>,
 }
 
-impl<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<'draw_buf, T, S> {
+impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
     pub(crate) fn new(
-        draw_buffer: &'draw_buf mut [MaybeUninit<PixelColor>],
+        // We don't need 'static. We could just create a generic lifetime.
+        draw_buffer: &'static mut [MaybeUninit<PixelColor>],
         display: T,
     ) -> Self {
         // We box the display to pin its address. This way, we can operate on it in the callback.
@@ -93,14 +94,14 @@ impl<'draw_buf, T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display
     }
 }
 
-impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Deref for Display<'a, T, S> {
+impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Deref for Display<T, S> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         self.display.deref()
     }
 }
 
-impl<'a, T: DrawTarget<Color = PixelColor> + OriginDimensions, S> DerefMut for Display<'a, T, S> {
+impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> DerefMut for Display<T, S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.display.deref_mut()
     }
