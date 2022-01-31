@@ -1,5 +1,6 @@
 use core::mem::{self, MaybeUninit};
 use alloc::boxed::Box;
+use crate::AppState;
 
 //////////////////
 // Generic trait
@@ -10,12 +11,12 @@ pub trait InputDeviceEvent {
     fn input_device_type() -> lvgl_sys::lv_indev_type_t;
 }
 
-pub fn register_input_device<F, I>(
+pub fn register_input_device<F, I, S>(
     disp: *mut lvgl_sys::lv_disp_t,
     mut event_generator: F,
 ) where
     // We require static because we don't want any references in the closure to disappear
-    F: Fn() -> I + 'static,
+    F: Fn(&mut S) -> I + 'static,
     I: InputDeviceEvent,
 {
     unsafe {
@@ -24,7 +25,7 @@ pub fn register_input_device<F, I>(
             lvgl_sys::lv_indev_drv_init(indev_drv.as_mut_ptr());
             let mut indev_drv = Box::new(indev_drv.assume_init());
             indev_drv.type_ = <I as InputDeviceEvent>::input_device_type();
-            indev_drv.read_cb = Some(indev_read_cb::<F, I>);
+            indev_drv.read_cb = Some(indev_read_cb::<F, I, S>);
             indev_drv.disp = disp;
             indev_drv.user_data = mem::transmute(&mut event_generator);
             indev_drv
@@ -37,11 +38,11 @@ pub fn register_input_device<F, I>(
 }
 
 
-unsafe extern "C" fn indev_read_cb<F, I>(
+unsafe extern "C" fn indev_read_cb<F, I, S>(
     drv: *mut lvgl_sys::lv_indev_drv_t,
     data: *mut lvgl_sys::lv_indev_data_t,
 ) where
-    F: Fn() -> I + 'static,
+    F: Fn(&mut S) -> I + 'static,
     I: InputDeviceEvent,
 {
     let drv = drv.as_mut().unwrap();
@@ -50,7 +51,8 @@ unsafe extern "C" fn indev_read_cb<F, I>(
     let event_generator_ptr: *mut F = mem::transmute(drv.user_data);
     let event_generator = event_generator_ptr.as_mut().unwrap();
 
-    event_generator().populate_lv_indev_data(data);
+    let event = event_generator(AppState::global().as_mut());
+    event.populate_lv_indev_data(data);
 }
 
 

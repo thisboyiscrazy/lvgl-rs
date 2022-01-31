@@ -8,22 +8,23 @@ use super::display::{PixelColor, Display};
 use core::{
     sync::atomic::{AtomicBool, Ordering},
     marker::PhantomData,
-    mem::MaybeUninit,
+    mem::{self, MaybeUninit},
+    ptr,
 };
 
-pub struct Lvgl {
+pub struct Lvgl<S> {
     // The phantom is used for two things:
     // 1) Prevent the user from building that struct
     // 2) Remove the Send and Sync trait with the pointer
-    _phantom: PhantomData<*mut cty::c_void>,
+    _phantom: PhantomData<(S, *mut cty::c_void)>,
 }
 
 // We can let another thread use the tick_inc/timer_handler functions, but one
 // must be careful to not register buttons from another thread.
-unsafe impl Send for Lvgl {}
+unsafe impl<S> Send for Lvgl<S> {}
 
-impl Lvgl {
-    pub(crate) fn ensure_init() {
+impl<S> Lvgl<S> {
+    pub fn ensure_init() {
         static HAS_INIT: AtomicBool = AtomicBool::new(false);
         if HAS_INIT.fetch_or(true, Ordering::Relaxed) {
             unsafe { lvgl_sys::lv_init(); }
@@ -44,7 +45,7 @@ impl Lvgl {
         &self,
         draw_buffer: &'a mut [MaybeUninit<PixelColor>],
         display: T
-    ) -> Display<'a, T>
+    ) -> Display<'a, T, S>
     {
         Display::new(draw_buffer, display)
     }
@@ -57,10 +58,42 @@ impl Lvgl {
     }
 
     /// Call this at least every few milliseconds to run LVGL tasks
-    pub fn timer_handler(&mut self) {
+    /// `app_state` will be provided to registered callbacks.
+    pub fn timer_handler(&mut self, app_state: &mut S) {
         unsafe {
+            assert!(APP_STATE.is_null(), "timer_handler() called recursively");
+            APP_STATE = mem::transmute(app_state);
+
             lvgl_sys::lv_timer_handler();
+
+            APP_STATE = core::ptr::null_mut();
         }
     }
 }
 
+// The type here doesn't really matter. We don't know it in advance.  We use a
+// global variable as opposed to something in a struct, because we would
+// otherwise have to save an extra reference for each callback that we register.
+// This cost memory for no good reason as we _have_ to operate with a singleton anyways.
+// This is because the lvgl timer_handler() doesn't take any argument.
+static mut APP_STATE: *mut () = ptr::null_mut();
+
+// This gives a lifetime to the app state reference.
+// it shouldn't not be kept for longer than the duration of the callback
+pub(crate) struct AppState<S> {
+    // No Send/Sync because the lifetime is bounded by timer_handler().
+    _phantom: PhantomData<*mut S>,
+}
+
+impl<S> AppState<S> {
+    pub(crate) fn global() -> Self {
+        Self { _phantom: PhantomData }
+    }
+
+    pub(crate) fn as_mut(&mut self) -> &mut S {
+        unsafe {
+            let app_state: *mut S = mem::transmute(APP_STATE);
+            app_state.as_mut().expect("APP_STATE accessed outside of timer_handler")
+        }
+    }
+}
