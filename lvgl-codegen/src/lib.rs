@@ -58,7 +58,7 @@ impl Rusty for LvWidget {
         Ok(quote! {
             define_object!(#widget_name);
 
-            impl #widget_name {
+            impl<'a,S> #widget_name<'a,S> {
                 #(#methods)*
             }
         })
@@ -95,22 +95,34 @@ impl Rusty for LvFunc {
         let func_name = format_ident!("{}", new_name);
         let original_func_name = format_ident!("{}", self.name.as_str());
 
+        //let widget_name = format_ident!("{}", to_pascal_case(parent.name.as_str()));
+        //let new_fn_name = format_ident!("new_{}", parent.name);
+
         // generate constructor
         if new_name.as_str().eq("create") {
             return Ok(quote! {
-
-                pub fn new<C>(parent: &mut C) -> Self
-                where
-                    C: crate::core::NativeObject,
-                {
+                pub fn new<'b>(parent: &mut Obj<'b,S>) -> Self {
                     unsafe {
-                        let ptr = lvgl_sys::#original_func_name(parent.raw().as_mut());
-                        let raw = core::ptr::NonNull::new(ptr).expect("OOM");
-                        let core = <crate::core::Obj as crate::core::Widget>::from_raw(raw);
-                        Self { core }
+                        let ptr = lvgl_sys::#original_func_name(parent.raw);
+                        let obj = Obj::from_raw(ptr.as_mut().expect("OOM"));
+                        Self { obj }
                     }
                 }
             });
+
+            /*
+            return Ok(quote! {
+                impl<'a,S> Obj<'a,S> {
+                    pub fn #new_fn_name(&mut self) -> #widget_name {
+                        unsafe {
+                            let ptr = lvgl_sys::#original_func_name(parent.raw().as_mut());
+                            let obj = Obj::from_raw(ptr.as_mut().expect("OOM"));
+                            #widget_name { obj }
+                        }
+                    }
+                }
+            });
+            */
         }
 
         // We don't deal with methods that return types yet
@@ -180,7 +192,7 @@ impl Rusty for LvFunc {
             .fold(quote!(), |args, (i, arg)| {
                 // if first arg is `const`, then it should be immutable
                 let next_arg = if i == 0 {
-                    quote!(self.core.raw().as_mut())
+                    quote!(&mut *self.raw)
                 } else {
                     let var = arg.get_value_usage();
                     quote!(#var)

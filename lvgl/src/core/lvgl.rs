@@ -23,16 +23,16 @@ pub struct Lvgl<S> {
 // must be careful to not register buttons from another thread.
 unsafe impl<S> Send for Lvgl<S> {}
 
-impl<S> Lvgl<S> {
-    pub fn ensure_init() {
-        static HAS_INIT: AtomicBool = AtomicBool::new(false);
-        if !HAS_INIT.fetch_or(true, Ordering::Relaxed) {
-            unsafe { lvgl_sys::lv_init(); }
-        }
+pub(crate) fn ensure_init() {
+    static HAS_INIT: AtomicBool = AtomicBool::new(false);
+    if !HAS_INIT.fetch_or(true, Ordering::Relaxed) {
+        unsafe { lvgl_sys::lv_init(); }
     }
+}
 
+impl<S> Lvgl<S> {
     pub fn new() -> Self {
-        Self::ensure_init();
+        ensure_init();
         Self { _phantom: PhantomData }
     }
 
@@ -90,6 +90,26 @@ impl<S> Lvgl<S> {
     }
 }
 
+pub struct Ticks {
+    _phantom: PhantomData<()>,
+}
+
+impl Ticks {
+    fn new() -> Self {
+        Self { _phantom: PhantomData }
+    }
+
+    /// Call this with good accuracy to inform LVGL about time.
+    /// This function is safe to call in an interrupt context while
+    /// lvgl.timer_handler() is running.
+    pub fn inc(&mut self, millis_since_last_tick: u32) {
+        unsafe {
+            lvgl_sys::lv_tick_inc(millis_since_last_tick)
+        }
+    }
+}
+
+
 // The type here doesn't really matter. We don't know it in advance.  We use a
 // global variable as opposed to something in a struct, because we would
 // otherwise have to save an extra reference for each callback that we register.
@@ -114,25 +134,6 @@ impl<S> AppState<S> {
             let app_state: *mut S = mem::transmute(APP_STATE);
             // This should always work. This is only used from our extern C callbacks.
             app_state.as_mut().expect("APP_STATE accessed outside of timer_handler")
-        }
-    }
-}
-
-pub struct Ticks {
-    _phantom: PhantomData<()>,
-}
-
-impl Ticks {
-    fn new() -> Self {
-        Self { _phantom: PhantomData }
-    }
-
-    /// Call this with good accuracy to inform LVGL about time.
-    /// This function is safe to call in an interrupt context while
-    /// lvgl.timer_handler() is running.
-    pub fn inc(&mut self, millis_since_last_tick: u32) {
-        unsafe {
-            lvgl_sys::lv_tick_inc(millis_since_last_tick)
         }
     }
 }

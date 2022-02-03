@@ -1,36 +1,50 @@
-use core::ptr;
-use alloc::boxed::Box;
+use core::marker::PhantomData;
+//use alloc::boxed::Box;
+use crate::{
+    //style::{Style, Align, Part, State},
+    core::Event,
+    core::event::add_event_cb,
+};
 
-use crate::style::{Style, Align, Part, State};
-
-/// Represents a native LVGL object
-pub trait NativeObject {
-    /// Provide common way to access to the underlying native object pointer.
-    fn raw(&self) -> ptr::NonNull<lvgl_sys::lv_obj_t>;
+/// Base LVGL object. S is the AppState that we provide to the callbacks
+pub struct Obj<'parent, S> {
+    pub(crate) raw: &'static mut lvgl_sys::lv_obj_t,
+    _phantom: PhantomData<(&'parent Self, S)>,
 }
 
-/// Generic LVGL object.
-///
-/// This is the parent object of all widget types. It stores the native LVGL raw pointer.
-pub struct Obj {
-    raw: ptr::NonNull<lvgl_sys::lv_obj_t>,
-}
-
-impl NativeObject for Obj {
-    fn raw(&self) -> ptr::NonNull<lvgl_sys::lv_obj_t> {
-        self.raw
-    }
-}
+unsafe impl<'a, S> Send for Obj<'a,S> {}
 
 /// A wrapper for all LVGL common operations on generic objects.
-pub trait Widget: NativeObject {
-    /// Construct an instance of the object from a raw pointer.
-    ///
-    /// # Safety
-    /// Provided the LVGL library can allocate memory this should be safe.
-    ///
-    unsafe fn from_raw(raw_pointer: ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self;
+impl<'a, S> Obj<'a, S> {
+    pub fn from_raw(raw: &'static mut lvgl_sys::lv_obj_t) -> Self {
+        Self { raw, _phantom: PhantomData }
+    }
 
+    /// Register an event callback, for a specific event. The function will be
+    /// called with a child object if the object triggering the event is not the
+    /// current object.
+    pub fn on_event<'b, F>(&mut self, event: Event, mut f: F)
+    where
+        F: FnMut(&'b mut S, Option<Obj<'b, S>>) + 'static,
+        S: 'static,
+    {
+        let f = move |s, _e, c| f(s, c);
+        add_event_cb(self, Some(event), f);
+    }
+
+    /// Register an event callback, receiving all events. The function will be
+    /// called with a child object if the object triggering the event is not the
+    /// current object.
+    pub fn on_any_event<'b, F>(&mut self, f: F)
+    where
+        F: FnMut(&mut S, Event, Option<Obj<'b, S>>) + 'static,
+        S: 'static,
+    {
+        add_event_cb(self, None, f);
+    }
+
+
+/*
     fn add_style(&self, style: Style, part: Part, state: State) {
         let part: lvgl_sys::lv_part_t = part.into();
         let selector = part | state.bits() as u32;
@@ -96,72 +110,7 @@ pub trait Widget: NativeObject {
             );
         }
     }
-}
-
-impl Widget for Obj {
-    unsafe fn from_raw(raw: ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self {
-        Self { raw }
-    }
-}
-
-impl Default for Obj {
-    fn default() -> Self {
-        let raw = unsafe { lvgl_sys::lv_obj_create(ptr::null_mut()) };
-        let raw = ptr::NonNull::new(raw).expect("OOM");
-        Self { raw }
-    }
-}
-
-macro_rules! define_object {
-    ($item:ident) => {
-        define_object!($item, event = (), part = $crate::Part);
-    };
-    ($item:ident, event = $event_type:ty) => {
-        define_object!($item, event = $event_type, part = $crate::Part);
-    };
-    ($item:ident, part = $part_type:ty) => {
-        define_object!($item, event = (), part = $part_type);
-    };
-    ($item:ident, part = $part_type:ty, event = $event_type:ty) => {
-        define_object!($item, event = $event_type, part = $part_type);
-    };
-    ($item:ident, event = $event_type:ty, part = $part_type:ty) => {
-        pub struct $item {
-            core: $crate::core::Obj,
-        }
-
-        unsafe impl Send for $item {}
-
-        impl $item {
-            pub fn on_event<F>(&mut self, event: $crate::core::Event, f: F)
-            where
-                F: FnMut(Self, $crate::core::Event, Option<$crate::core::Obj>),
-            {
-                $crate::core::add_event_cb(self, Some(event), f);
-            }
-
-            pub fn on_any_event<F>(&mut self, f: F)
-            where
-                F: FnMut(Self, $crate::core::Event, Option<$crate::core::Obj>),
-            {
-                $crate::core::add_event_cb(self, None, f);
-            }
-        }
-
-        impl $crate::core::NativeObject for $item {
-            fn raw(&self) -> core::ptr::NonNull<lvgl_sys::lv_obj_t> {
-                self.core.raw()
-            }
-        }
-
-        impl $crate::core::Widget for $item {
-            unsafe fn from_raw(raw: core::ptr::NonNull<lvgl_sys::lv_obj_t>) -> Self {
-                Self {
-                    core: $crate::core::Obj::from_raw(raw),
-                }
-            }
-        }
-    };
+    */
 }
 
 // Adapted from https://stackoverflow.com/questions/28028854/how-do-i-match-enum-values-with-an-integer
@@ -193,4 +142,26 @@ macro_rules! native_enum {
             }
         }
     }
+}
+
+macro_rules! define_object {
+    ($item:ident) => {
+        pub struct $item<'parent, S> {
+            obj: Obj<'parent, S>
+        }
+
+        impl<'a,S> core::ops::Deref for $item<'a,S> {
+            type Target = Obj<'a, S>;
+
+            fn deref(&self) -> &Self::Target {
+                &self.obj
+            }
+        }
+
+        impl<'a,S> core::ops::DerefMut for $item<'a,S> {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.obj
+            }
+        }
+    };
 }

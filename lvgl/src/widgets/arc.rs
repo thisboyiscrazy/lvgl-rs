@@ -1,5 +1,6 @@
-use crate::widgets::Arc;
+//use crate::widgets::Arc;
 
+/*
 impl Arc {
     // /// Set the start angle, for the given arc part.
     // /// 0 degrees for the right, 90 degrees for the bottom, etc.
@@ -37,6 +38,7 @@ impl Arc {
     //     Ok(())
     // }
 }
+*/
 
 /*
 /// The different parts, of an arc object.

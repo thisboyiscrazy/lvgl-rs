@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
-use crate::core::{Obj, Widget, InputDeviceEvent};
+use crate::core::InputDeviceEvent;
 
 use core::{
     marker::PhantomData,
     mem::{self, MaybeUninit},
-    ptr::{self, NonNull},
+    ptr,
     ops::{Deref, DerefMut},
 };
 
@@ -13,6 +13,8 @@ use embedded_graphics_core::{
     draw_target::DrawTarget,
     primitives::Rectangle,
 };
+
+use super::Obj;
 
 // This gives us "pub type PixelColor = embedded_graphics_core::pixel_color::Rgb565;" with the right color
 include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
@@ -78,11 +80,10 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
         }
     }
 
-    pub fn screen(&mut self) -> Obj {
+    pub fn screen<'a>(&'a mut self) -> Obj<'a, S> {
         unsafe {
             let obj_ptr = lvgl_sys::lv_disp_get_scr_act(self.disp);
-            let obj_ptr = NonNull::new(obj_ptr).unwrap();
-            Obj::from_raw(obj_ptr)
+            Obj::from_raw(obj_ptr.as_mut().unwrap())
         }
     }
 
@@ -107,6 +108,7 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> DerefMut for Displ
         self.display.deref_mut()
     }
 }
+
 
 
 unsafe extern "C" fn display_flush_cb<T>(

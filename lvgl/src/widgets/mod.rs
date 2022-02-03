@@ -2,7 +2,8 @@ mod arc;
 mod bar;
 mod gauge;
 mod label;
-use crate::core::NativeObject;
+
+use crate::core::Obj;
 
 include!(concat!(env!("OUT_DIR"), "/generated-widgets.rs"));
 

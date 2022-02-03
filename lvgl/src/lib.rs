@@ -19,7 +19,7 @@ extern crate bitflags;
 extern crate alloc;
 
 #[cfg(feature = "lvgl_alloc")]
-mod allocator;
+pub mod allocator;
 
 #[macro_use]
 pub mod core;
