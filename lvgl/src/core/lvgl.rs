@@ -1,27 +1,18 @@
-use embedded_graphics_core::{
-    prelude::*,
-    draw_target::DrawTarget,
-};
-
-use crate::core::display::{PixelColor, Display};
-
 use core::{
     sync::atomic::{AtomicBool, Ordering},
     marker::PhantomData,
-    mem::{self, MaybeUninit},
-    ptr,
 };
 
-pub struct Lvgl<S> {
+pub struct Lvgl {
     // The phantom is used for two things:
     // 1) Prevent the user from building that struct
     // 2) Remove the Send and Sync trait with the pointer
-    _phantom: PhantomData<(S, *mut cty::c_void)>,
+    _phantom: PhantomData<*mut cty::c_void>,
 }
 
 // We can let another thread use the tick_inc/timer_handler functions, but one
 // must be careful to not register buttons from another thread.
-unsafe impl<S> Send for Lvgl<S> {}
+unsafe impl Send for Lvgl {}
 
 pub(crate) fn ensure_init() {
     static HAS_INIT: AtomicBool = AtomicBool::new(false);
@@ -30,7 +21,7 @@ pub(crate) fn ensure_init() {
     }
 }
 
-impl<S> Lvgl<S> {
+impl Lvgl {
     pub fn new() -> Self {
         ensure_init();
         Self { _phantom: PhantomData }
@@ -41,6 +32,7 @@ impl<S> Lvgl<S> {
     where
         F: FnMut(&str) -> () + 'static
     {
+        use core::{mem, ptr};
         static mut LOGGER: *mut () = ptr::null_mut();
         unsafe {
             LOGGER = mem::transmute(&mut f);
@@ -58,35 +50,19 @@ impl<S> Lvgl<S> {
         }
     }
 
-    /// Pass in the drawing buffer. See https://docs.lvgl.io/master/porting/display.html
-    /// PixelColor is aliased to the color type configured by lv_conf.h
-    /// 1/10th of the screen size is recommended for the size.
-    // Note that we take references, because we want to be able to take special
-    // addresses (like DMA regions), or static buffers, or stack allocated buffers.
-    pub fn register_display<T: DrawTarget<Color = PixelColor> + OriginDimensions>(
-        &mut self,
-        draw_buffer: &'static mut [MaybeUninit<PixelColor>],
-        display: T
-    ) -> Display<T, S>
-    {
-        Display::new(draw_buffer, display)
-    }
-
     pub fn ticks(&self) -> Ticks {
         Ticks::new()
     }
 
     /// Call this at least every few milliseconds to run LVGL tasks
-    /// `app_state` will be provided to registered callbacks.
-    pub fn run_tasks(&mut self, app_state: &mut S) {
-        unsafe {
-            assert!(APP_STATE.is_null(), "timer_handler() called recursively");
-            APP_STATE = mem::transmute(app_state);
+    pub fn run_tasks(&mut self) {
+        unsafe { lvgl_sys::lv_timer_handler(); }
+    }
+}
 
-            lvgl_sys::lv_timer_handler();
-
-            APP_STATE = core::ptr::null_mut();
-        }
+impl Default for Lvgl {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -109,6 +85,7 @@ impl Ticks {
     }
 }
 
+/*
 
 // The type here doesn't really matter. We don't know it in advance.  We use a
 // global variable as opposed to something in a struct, because we would
@@ -137,3 +114,5 @@ impl<S> AppState<S> {
         }
     }
 }
+
+*/

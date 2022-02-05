@@ -33,23 +33,23 @@ pub unsafe fn lv_slider_set_mode(obj: *mut lv_obj_t, mode: lv_slider_mode_t)
 #[inline]
 pub unsafe fn lv_slider_get_value(obj: *const lv_obj_t) -> i32
 {
-    return lv_bar_get_value(obj);
+    lv_bar_get_value(obj)
 }
 
 #[inline]
 pub unsafe fn lv_slider_get_left_value(obj: *const lv_obj_t) -> i32
 {
-    return lv_bar_get_start_value(obj);
+    lv_bar_get_start_value(obj)
 }
 
 #[inline]
 pub unsafe fn lv_slider_get_min_value(obj: *const lv_obj_t) -> i32
 {
-    return lv_bar_get_min_value(obj);
+    lv_bar_get_min_value(obj)
 }
 
 #[inline]
 pub unsafe fn lv_slider_get_max_value(obj: *const lv_obj_t) -> i32
 {
-    return lv_bar_get_max_value(obj);
+    lv_bar_get_max_value(obj)
 }

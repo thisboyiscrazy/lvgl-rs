@@ -85,12 +85,10 @@ impl Rusty for LvWidget {
         let widget_name = format_ident!("{}", to_pascal_case(self.name.as_str()));
         let methods: Vec<TokenStream> = self.methods.iter().flat_map(|m| m.code(self)).collect();
 
-        //let obj_create_fn_name = format_ident!("add_{}", self.name.as_str());
-
         Ok(quote! {
             define_object!(#widget_name);
 
-            impl<'a,S> #widget_name<'a,S> {
+            impl<'p, C: 'static> #widget_name<'p, C> {
                 #(#methods)*
             }
         })
@@ -132,12 +130,10 @@ impl Rusty for LvFunc {
         // generate constructor
         if new_name.as_str().eq("create") {
             return Ok(quote! {
-                pub fn new(parent: &mut impl crate::core::ObjExt<'a,S>) -> Self
-                    where S: 'static
-                {
+                pub fn new(parent: &'p mut impl crate::core::ObjExt<'p, C>) -> Self {
                     unsafe {
                         let obj = lvgl_sys::#original_func_name(&mut *parent.raw);
-                        let obj = Obj::from_raw(obj.as_mut().expect("OOM"));
+                        let obj = Obj::from_raw(obj.as_mut().expect("OOM"), parent.context);
                         Self { obj }
                     }
                 }

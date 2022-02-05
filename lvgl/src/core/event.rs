@@ -1,11 +1,9 @@
 //use crate::macros::native_enum;
 
 use alloc::boxed::Box;
-use crate::core::Obj;
+use lvgl_sys::lv_obj_t;
 
 use core::convert::TryInto;
-
-use crate::core::lvgl::AppState;
 
 native_enum! {
     lvgl_sys::lv_event_code_t,
@@ -117,15 +115,12 @@ native_enum! {
 }
 
 
-pub(crate) fn add_event_cb<'a, 'b, S, F>(obj: &mut Obj<'a, S>, event: Option<Event>, cb: F)
+pub(crate) fn add_event_cb<F>(obj_raw: &mut lv_obj_t, event: Option<Event>, cb: F)
 where
-    F: FnMut(&'b mut S, Event, Option<Obj<'b, S>>) + 'static,
-    S: 'static,
+    F: FnMut(Event, &mut lv_obj_t, &mut lv_obj_t)
 {
     // XXX FIXME We need to cleanup our Boxing at some point.
-    //let user_closure = Box::new(cb);
-    //let user_closure: Box<dyn FnMut(&mut S, Option<Obj<'static, S>>) + 'static> = Box::new(cb);
-
+    // We use dyn to avoid generating too much code with the event_callback function.
     let user_closure: &dyn FnMut(_,_,_) = &cb;
     let user_closure = Box::new(user_closure);
 
@@ -134,17 +129,15 @@ where
 
     unsafe {
         lvgl_sys::lv_obj_add_event_cb(
-            obj.raw,
-            Some(event_callback::<S>),
+            obj_raw,
+            Some(event_callback),
             event,
             user_data,
         );
     }
 }
 
-unsafe extern "C" fn event_callback<'a, S>(event: *mut lvgl_sys::lv_event_t)
-where
-    S: 'static,
+unsafe extern "C" fn event_callback(event: *mut lvgl_sys::lv_event_t)
 {
     // Seems a bit silly to use functions to access fields, but that's what the
     // libary example show.
@@ -155,28 +148,15 @@ where
     let user_data = lvgl_sys::lv_event_get_user_data(event);
 
     if let Ok(event_code) = event_code.try_into() {
-        if let Some(target) = target.as_mut() {
-            // current_target is always the object on which .on_event() was called.
-            // target can either be the same object, or a child object
-            // when LV_OBJ_FLAG_EVENT_BUBBLE is set on the child.
-            let child = if current_target != target as *mut _ {
-                Some(Obj::from_raw(target))
-            } else {
-                None
-            };
+        let current_target = current_target.as_mut().unwrap();
+        let target = target.as_mut().unwrap();
+        // current_target is always the object on which .on_event() was called.
+        // target can either be the same object, or a child object
+        // when LV_OBJ_FLAG_EVENT_BUBBLE is set on the child.
 
-            let mut app_state = AppState::from_callbacks();
-            //let user_data = user_data.as_mut().unwrap();
+        let user_data = user_data as *mut &mut dyn FnMut(Event, &mut lv_obj_t, &mut lv_obj_t);
 
-            let user_data = user_data as *mut &mut dyn FnMut(&mut S, Event, Option<Obj<'a, S>>);
-            let closure = user_data.as_mut().unwrap();
-            closure(app_state.as_mut(), event_code, child);
-
-            /*
-            let current_target = T::from_raw(current_target);
-            let user_closure = &mut *(user_data as *mut F);
-            user_closure(event_code, child);
-            */
-        }
+        let closure = user_data.as_mut().unwrap();
+        closure(event_code, current_target, target);
     }
 }

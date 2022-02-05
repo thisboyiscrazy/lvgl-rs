@@ -13,3 +13,6 @@ pub use display::*;
 
 mod input_device;
 pub use input_device::*;
+
+mod screen;
+pub use screen::*;

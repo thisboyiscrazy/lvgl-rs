@@ -1,8 +1,7 @@
 use alloc::boxed::Box;
-use crate::core::InputDeviceEvent;
+use super::Lvgl;
 
 use core::{
-    marker::PhantomData,
     mem::{self, MaybeUninit},
     ptr,
     ops::{Deref, DerefMut},
@@ -14,7 +13,7 @@ use embedded_graphics_core::{
     primitives::Rectangle,
 };
 
-use super::{Obj, Screen};
+//use super::{Obj, Screen};
 
 // This gives us "pub type PixelColor = embedded_graphics_core::pixel_color::Rgb565;" with the right color
 include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
@@ -25,16 +24,22 @@ include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
 /// * No color conversion. lv_conf.h specifies what embedded_graphics display you can use
 /// * Resources are leaked when `Display` is dropped
 
-pub struct Display<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> {
+pub struct Display<T> {
     // We box because we need stable addresses
     display: Box<T>,
-    disp: &'static mut lvgl_sys::lv_disp_t,
-    _phantom: PhantomData<S>,
+    pub(crate) disp: &'static mut lvgl_sys::lv_disp_t,
 }
 
-impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
-    pub(crate) fn new(
-        // We don't need 'static. We could just create a generic lifetime.
+impl<T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<T> {
+
+    /// Pass in the drawing buffer. See https://docs.lvgl.io/master/porting/display.html
+    /// PixelColor is aliased to the color type configured by lv_conf.h
+    /// 1/10th of the screen size is recommended for the size.
+    // Note that we take references, because we want to be able to take special
+    // addresses (like DMA regions), or static buffers, or stack allocated buffers.
+    pub fn new(
+        _lvgl: Lvgl,
+        // We don't need 'static. We could just create a generic lifetime, but let's keep things simple.
         draw_buffer: &'static mut [MaybeUninit<PixelColor>],
         display: T,
     ) -> Self {
@@ -59,7 +64,7 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
             disp_drv.draw_buf = disp_draw_buf.as_mut();
             disp_drv.hor_res = display.size().width as lvgl_sys::lv_coord_t;
             disp_drv.ver_res = display.size().height as lvgl_sys::lv_coord_t;
-            disp_drv.flush_cb = Some(display_flush_cb::<T>);
+            disp_drv.flush_cb = Some(Self::display_flush_cb);
             disp_drv.user_data = mem::transmute(display.as_mut());
             disp_drv
         };
@@ -76,71 +81,65 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
         Self {
             disp,
             display,
-            _phantom: PhantomData,
         }
     }
 
+    unsafe extern "C" fn display_flush_cb(
+        disp_drv: *mut lvgl_sys::lv_disp_drv_t,
+        area: *const lvgl_sys::lv_area_t,
+        color_p: *mut lvgl_sys::lv_color_t,
+    ) {
+        // In the `std` world we would make sure to capture panics here and make them not escape across
+        // the FFI boundary. Since this library is focused on embedded platforms, we don't
+        // have an standard unwinding mechanism to rely upon.
+        let disp_drv = disp_drv.as_mut().unwrap();
+        let display_ptr: *mut T = mem::transmute(disp_drv.user_data);
+        let display = display_ptr.as_mut().unwrap();
+
+        let area = Rectangle::with_corners(
+            ((*area).x1 as i32, (*area).y1 as i32).into(),
+            ((*area).x2 as i32, (*area).y2 as i32).into()
+        );
+
+        let num_pixels = (area.size.width * area.size.height) as usize;
+        let colors = core::slice::from_raw_parts(color_p as *const PixelColor, num_pixels);
+        let colors = colors
+            .iter()
+            .cloned();
+
+        // Ignore errors
+        let _ = display.fill_contiguous(&area, colors);
+
+        // Indicate to LVGL that we are ready with the flushing
+        // Note that we could do something async if we were to use something like DMA and two buffers.
+        lvgl_sys::lv_disp_flush_ready(disp_drv);
+    }
+
+    /*
     pub fn screen<'a>(&'a mut self) -> Screen<'a, S> {
         unsafe {
             let obj_ptr = lvgl_sys::lv_disp_get_scr_act(self.disp);
             let obj = Obj::from_raw(obj_ptr.as_mut().unwrap());
             Screen { obj }
         }
-    }
-
-    pub fn register_input_device<F, I>(&mut self, event_generator: F)
-    where
-        F: Fn(&mut S) -> I + 'static,
-        I: InputDeviceEvent,
-    {
-        crate::core::input_device::register_input_device(self.disp, event_generator);
-    }
+    } */
 }
 
-impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Deref for Display<T, S> {
+impl<T> Deref for Display<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         self.display.deref()
     }
 }
 
-impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> DerefMut for Display<T, S> {
+impl<T> DerefMut for Display<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.display.deref_mut()
     }
 }
 
-
-
-unsafe extern "C" fn display_flush_cb<T>(
-    disp_drv: *mut lvgl_sys::lv_disp_drv_t,
-    area: *const lvgl_sys::lv_area_t,
-    color_p: *mut lvgl_sys::lv_color_t,
-) where
-    T: DrawTarget<Color = PixelColor>,
-{
-    // In the `std` world we would make sure to capture panics here and make them not escape across
-    // the FFI boundary. Since this library is focused on embedded platforms, we don't
-    // have an standard unwinding mechanism to rely upon.
-    let disp_drv = disp_drv.as_mut().unwrap();
-    let display_ptr: *mut T = mem::transmute(disp_drv.user_data);
-    let display = display_ptr.as_mut().unwrap();
-
-    let area = Rectangle::with_corners(
-        ((*area).x1 as i32, (*area).y1 as i32).into(),
-        ((*area).x2 as i32, (*area).y2 as i32).into()
-    );
-
-    let num_pixels = (area.size.width * area.size.height) as usize;
-    let colors = core::slice::from_raw_parts(color_p as *const PixelColor, num_pixels);
-    let colors = colors
-        .into_iter()
-        .cloned();
-
-    // Ignore errors
-    let _ = display.fill_contiguous(&area, colors);
-
-    // Indicate to LVGL that we are ready with the flushing
-    // Note that we could do something async if we were to use something like DMA and two buffers.
-    lvgl_sys::lv_disp_flush_ready(disp_drv);
+impl<T> Drop for Display<T> {
+    fn drop(&mut self) {
+        unimplemented!();
+    }
 }
