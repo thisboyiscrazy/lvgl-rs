@@ -11,7 +11,7 @@ pub struct Screen<C: 'static> {
     // The option is because the user will most likely want to create an initial
     // application state with widgets that need the screen to be instantiated,
     // and so it's a chicken and egg problem.
-    _user_context: Box<Option<C>>,
+    _context: Box<Option<C>>,
 }
 
 impl<C: 'static> Screen<C> {
@@ -22,15 +22,15 @@ impl<C: 'static> Screen<C> {
             // The option is because the user will most likely want to create an initial
             // application state with widgets that need the screen to be instantiated,
             // and so it's a chicken and egg problem.
-            let mut user_context = Box::new(None);
+            let mut context = Box::new(None);
 
             // To bypass the borrow checker.
-            let user_context_ptr = user_context.as_mut() as *mut Option<C>;
-            let user_context_ptr = ptr::NonNull::new_unchecked(user_context_ptr);
+            let context_ptr = context.as_mut() as *mut Option<C>;
+            let context_ptr = ptr::NonNull::new_unchecked(context_ptr);
 
             let obj = lvgl_sys::lv_obj_create(core::ptr::null_mut());
-            let obj = Obj::from_raw(obj.as_mut().expect("OOM"), user_context_ptr);
-            Self { obj, _user_context: user_context }
+            let obj = Obj::from_raw(obj.as_mut().expect("OOM"), context_ptr);
+            Self { obj, _context: context }
         }
     }
 }

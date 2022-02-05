@@ -31,6 +31,10 @@ impl<C> Obj<C> {
 }
 
 pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
+    fn context(&mut self) -> &mut Option<C> {
+        unsafe { self.context.as_mut() }
+    }
+
     /// Register an event callback, for a specific event
     fn on_event(mut self, event: Event, mut f: impl FnMut(Option<&mut C>)) -> Self {
         let mut context = self.context;

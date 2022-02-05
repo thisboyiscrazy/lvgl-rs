@@ -1,12 +1,6 @@
 use crate::*;
 
 #[inline]
-pub unsafe fn lv_canvas_set_px(canvas: *mut lv_obj_t, x: lv_coord_t, y: lv_coord_t, c: lv_color_t)
-{
-    lv_canvas_set_px_color(canvas, x, y, c);
-}
-
-#[inline]
 pub unsafe fn lv_slider_set_value(obj: *mut lv_obj_t, value: i32, anim: lv_anim_enable_t)
 {
     lv_bar_set_value(obj, value, anim);

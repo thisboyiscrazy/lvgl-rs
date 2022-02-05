@@ -62,7 +62,7 @@ impl<S: InputDeviceState + Default> InputDevice<S> {
 
 impl<S> Drop for InputDevice<S> {
     fn drop(&mut self) {
-        unimplemented!();
+        panic!("InputDevice can't be dropped");
     }
 }
 

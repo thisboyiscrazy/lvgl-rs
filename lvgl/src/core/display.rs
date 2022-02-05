@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 use super::Lvgl;
+use super::Screen;
 
 use core::{
     mem::{self, MaybeUninit},
@@ -30,8 +31,9 @@ pub struct Display<T> {
     pub(crate) disp: &'static mut lvgl_sys::lv_disp_t,
 }
 
-impl<T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<T> {
+unsafe impl<T: Send> Send for Display<T> {}
 
+impl<T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<T> {
     /// Pass in the drawing buffer. See https://docs.lvgl.io/master/porting/display.html
     /// PixelColor is aliased to the color type configured by lv_conf.h
     /// 1/10th of the screen size is recommended for the size.
@@ -114,15 +116,14 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<T> {
         // Note that we could do something async if we were to use something like DMA and two buffers.
         lvgl_sys::lv_disp_flush_ready(disp_drv);
     }
+}
 
-    /*
-    pub fn screen<'a>(&'a mut self) -> Screen<'a, S> {
+impl<T> Display<T> {
+    pub fn load_screen<S>(&mut self, screen: &mut Screen<S>) {
         unsafe {
-            let obj_ptr = lvgl_sys::lv_disp_get_scr_act(self.disp);
-            let obj = Obj::from_raw(obj_ptr.as_mut().unwrap());
-            Screen { obj }
+            lvgl_sys::lv_disp_load_scr(&mut *screen.raw);
         }
-    } */
+    }
 }
 
 impl<T> Deref for Display<T> {
@@ -140,6 +141,6 @@ impl<T> DerefMut for Display<T> {
 
 impl<T> Drop for Display<T> {
     fn drop(&mut self) {
-        unimplemented!();
+        panic!("Display can't be dropped");
     }
 }
