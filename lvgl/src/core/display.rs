@@ -38,10 +38,10 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions> Display<T> {
     // Note that we take references, because we want to be able to take special
     // addresses (like DMA regions), or static buffers, or stack allocated buffers.
     pub fn new(
-        _lvgl: Lvgl,
+        _lvgl: &Lvgl,
+        display: T,
         // We don't need 'static. We could just create a generic lifetime, but let's keep things simple.
         draw_buffer: &'static mut [MaybeUninit<PixelColor>],
-        display: T,
     ) -> Self {
         // We box the display to pin its address. This way, we can operate on it in the callback.
         let mut display = Box::new(display);

@@ -1,5 +1,4 @@
 use core::ops::{Deref, DerefMut};
-use core::marker::PhantomData;
 use lvgl_sys::{lv_coord_t, lv_obj_t};
 
 use core::ptr;
@@ -12,27 +11,26 @@ use crate::{
     core::event::add_event_cb,
 };
 
-/// Base LVGL object. S is the AppState that we provide to the callbacks
-/// The lifetime of the object depends on the lifetime of its parent.
-/// (in lvgl, deleting an object deletes all its children)
-/// We put the lifetime on the user_context, but it's slightly semantically wrong.
-pub struct Obj<'parent, C> {
+/// Base LVGL object. C is the application context that we provide to the
+/// callbacks The lifetime of the object depends on the lifetime of its parent.
+/// (in lvgl, deleting an object deletes all its children).
+/// We have not implemented lifetimes correctly at this point.
+pub struct Obj<C> {
     // pub so that the user can use lvgl_sys functions directly
     pub raw: &'static mut lv_obj_t,
     // We want a stable pointer.
     pub(crate) context: ptr::NonNull<Option<C>>, // Should be a refcell? Or a &mut? Lost patience trying to make things work.
-    _phantom: PhantomData<&'parent Self>
 }
 
-unsafe impl<'p, C> Send for Obj<'p, C> {}
+unsafe impl<C> Send for Obj<C> {}
 
-impl<'p, C> Obj<'p, C> {
+impl<C> Obj<C> {
     pub fn from_raw(raw: &'static mut lv_obj_t, context: ptr::NonNull<Option<C>>) -> Self {
-        Self { raw, context, _phantom: PhantomData }
+        Self { raw, context }
     }
 }
 
-pub trait ObjExt<'p, C: 'static>: Deref<Target = Obj<'p, C>> + DerefMut + Sized {
+pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
     /// Register an event callback, for a specific event
     fn on_event(mut self, event: Event, mut f: impl FnMut(Option<&mut C>)) -> Self {
         let mut context = self.context;
@@ -64,8 +62,8 @@ pub trait ObjExt<'p, C: 'static>: Deref<Target = Obj<'p, C>> + DerefMut + Sized 
         self
     }
 
-    fn align<'a>(mut self, base: &impl ObjExt<'a, C>, align: Align,
-                 x_mod: lv_coord_t, y_mod: lv_coord_t) -> Self
+    fn align(mut self, base: &impl ObjExt<C>, align: Align,
+             x_mod: lv_coord_t, y_mod: lv_coord_t) -> Self
     {
         unsafe { lvgl_sys::lv_obj_align_to(&mut *self.raw, base.raw, align.into(), x_mod, y_mod) };
         self
@@ -92,23 +90,23 @@ pub trait ObjExt<'p, C: 'static>: Deref<Target = Obj<'p, C>> + DerefMut + Sized 
     }
 
 }
-impl<'p, S: 'static, T: Deref<Target = Obj<'p,S>> + DerefMut + Sized> ObjExt<'p,S> for T {}
+impl<C: 'static, T: Deref<Target = Obj<C>> + DerefMut + Sized> ObjExt<C> for T {}
 
 macro_rules! define_object {
     ($item:ident) => {
-        pub struct $item<'p, C> {
-            pub(crate) obj: Obj<'p, C>
+        pub struct $item<C> {
+            pub(crate) obj: Obj<C>
         }
 
-        impl<'p, C> core::ops::Deref for $item<'p, C> {
-            type Target = Obj<'p, C>;
+        impl<C> core::ops::Deref for $item<C> {
+            type Target = Obj<C>;
 
             fn deref(&self) -> &Self::Target {
                 &self.obj
             }
         }
 
-        impl<'p, C> core::ops::DerefMut for $item<'p, C> {
+        impl<C> core::ops::DerefMut for $item<C> {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.obj
             }

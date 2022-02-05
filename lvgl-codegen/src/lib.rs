@@ -88,7 +88,7 @@ impl Rusty for LvWidget {
         Ok(quote! {
             define_object!(#widget_name);
 
-            impl<'p, C: 'static> #widget_name<'p, C> {
+            impl<C: 'static> #widget_name<C> {
                 #(#methods)*
             }
         })
@@ -124,13 +124,10 @@ impl Rusty for LvFunc {
         let mut new_name = self.name.replace(templ.as_str(), "");
         let original_func_name = format_ident!("{}", self.name.as_str());
 
-        //let widget_name = format_ident!("{}", to_pascal_case(parent.name.as_str()));
-        //let new_fn_name = format_ident!("new_{}", parent.name);
-
         // generate constructor
         if new_name.as_str().eq("create") {
             return Ok(quote! {
-                pub fn new(parent: &'p mut impl crate::core::ObjExt<'p, C>) -> Self {
+                pub fn new<'a>(parent: &mut impl crate::core::ObjExt<C>) -> Self {
                     unsafe {
                         let obj = lvgl_sys::#original_func_name(&mut *parent.raw);
                         let obj = Obj::from_raw(obj.as_mut().expect("OOM"), parent.context);
