@@ -26,3 +26,7 @@ pub mod core;
 
 pub mod widgets;
 pub mod style;
+
+pub mod prelude {
+    pub use crate::core::ObjExt;
+}

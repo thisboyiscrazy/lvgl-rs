@@ -31,6 +31,7 @@ fn generate_widgets(out_path: &Path) {
     .unwrap();
 }
 
+
 fn generate_color_settings(out_path: &Path) {
     let rs = out_path.join("generated-color-settings.rs");
 

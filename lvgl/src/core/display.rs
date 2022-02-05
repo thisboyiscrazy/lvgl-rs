@@ -14,7 +14,7 @@ use embedded_graphics_core::{
     primitives::Rectangle,
 };
 
-use super::Obj;
+use super::{Obj, Screen};
 
 // This gives us "pub type PixelColor = embedded_graphics_core::pixel_color::Rgb565;" with the right color
 include!(concat!(env!("OUT_DIR"), "/generated-color-settings.rs"));
@@ -80,10 +80,11 @@ impl<T: DrawTarget<Color = PixelColor> + OriginDimensions, S> Display<T, S> {
         }
     }
 
-    pub fn screen<'a>(&'a mut self) -> Obj<'a, S> {
+    pub fn screen<'a>(&'a mut self) -> Screen<'a, S> {
         unsafe {
             let obj_ptr = lvgl_sys::lv_disp_get_scr_act(self.disp);
-            Obj::from_raw(obj_ptr.as_mut().unwrap())
+            let obj = Obj::from_raw(obj_ptr.as_mut().unwrap());
+            Screen { obj }
         }
     }
 

@@ -8,10 +8,16 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 pub fn _bindgen_raw_src() -> &'static str {
-    include_str!(concat!(env!("OUT_DIR"), "/bindings.rs"))
+    concat!(
+        include_str!(concat!(env!("OUT_DIR"), "/bindings.rs")),
+        include_str!("static_inline.rs"),
+    )
 }
 
 mod string_impl;
+
+mod static_inline;
+pub use static_inline::*;
 
 #[cfg(test)]
 mod tests {

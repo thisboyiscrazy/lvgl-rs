@@ -6,7 +6,7 @@ pub enum Themes {
 }
 
 pub struct Style {
-    pub(crate) raw: Box<lvgl_sys::lv_style_t>,
+    pub(crate) _raw: Box<lvgl_sys::lv_style_t>,
 }
 
 /*
@@ -35,7 +35,7 @@ impl Default for Style {
             lvgl_sys::lv_style_init(style.as_mut_ptr());
             Box::new(style.assume_init())
         };
-        Self { raw }
+        Self { _raw: raw }
     }
 }
 
