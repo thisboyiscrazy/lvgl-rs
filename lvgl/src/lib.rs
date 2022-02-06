@@ -32,3 +32,6 @@ pub(crate) use style::native_enum;
 pub mod prelude {
     pub use crate::core::ObjExt;
 }
+
+pub use lvgl_sys as sys;
+pub use cstr_core;
