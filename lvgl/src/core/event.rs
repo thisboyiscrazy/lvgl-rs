@@ -115,14 +115,14 @@ crate::native_enum! {
 
 pub(crate) fn add_event_cb<F>(obj_raw: &mut lv_obj_t, event: Option<Event>, cb: F)
 where
-    F: FnMut(Event, &mut lv_obj_t, &mut lv_obj_t)
+    F: FnMut(Event, &mut lv_obj_t, &mut lv_obj_t) + 'static
 {
     // XXX FIXME We need to cleanup our Boxing at some point.
     // We use dyn to avoid generating too much code with the event_callback function.
-    let user_closure: &dyn FnMut(_,_,_) = &cb;
-    let user_closure = Box::new(user_closure);
+    // But then we need more boxing. It's a little sad.
+    let user_closure: Box<Box<dyn FnMut(_,_,_)>> = Box::new(Box::new(cb));
+    let user_data = unsafe { core::mem::transmute(Box::into_raw(user_closure)) };
 
-    let user_data = Box::into_raw(user_closure) as *mut cty::c_void;
     let event = event.map(|e| e.into()).unwrap_or(lvgl_sys::lv_event_code_t_LV_EVENT_ALL);
 
     unsafe {
@@ -152,9 +152,12 @@ unsafe extern "C" fn event_callback(event: *mut lvgl_sys::lv_event_t)
         // target can either be the same object, or a child object
         // when LV_OBJ_FLAG_EVENT_BUBBLE is set on the child.
 
-        let user_data = user_data as *mut &mut dyn FnMut(Event, &mut lv_obj_t, &mut lv_obj_t);
+        //panic!("user_closure: {:?}", user_data);
+        //let user_data = user_data as *mut &mut dyn FnMut(Event, &mut lv_obj_t, &mut lv_obj_t);
+        //let user_data = user_data as *mut dyn FnMut(Event, &mut lv_obj_t, &mut lv_obj_t);
 
-        let closure = user_data.as_mut().unwrap();
+        let user_data: *mut *mut dyn FnMut(Event, &mut lv_obj_t, &mut lv_obj_t) = core::mem::transmute(user_data);
+        let closure = user_data.as_mut().unwrap().as_mut().unwrap();
         closure(event_code, current_target, target);
     }
 }

@@ -15,7 +15,7 @@ pub struct Screen<C: 'static> {
 }
 
 impl<C: 'static> Screen<C> {
-    pub fn new<D>(_display: &mut Display<D>) -> Self {
+    pub fn new<D>(_display: &Display<D>) -> Self {
         unsafe {
             // This gets passed to callbacks.
             // The outer Box is so that we know the address immediately, and it shouldn't change.
@@ -24,9 +24,7 @@ impl<C: 'static> Screen<C> {
             // and so it's a chicken and egg problem.
             let mut context = Box::new(None);
 
-            // To bypass the borrow checker.
-            let context_ptr = context.as_mut() as *mut Option<C>;
-            let context_ptr = ptr::NonNull::new_unchecked(context_ptr);
+            let context_ptr = ptr::NonNull::new_unchecked(context.as_mut() as *mut _);
 
             let obj = lvgl_sys::lv_obj_create(core::ptr::null_mut());
             let obj = Obj::from_raw(obj.as_mut().expect("OOM"), context_ptr);

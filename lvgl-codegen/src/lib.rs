@@ -121,7 +121,7 @@ impl Rusty for LvFunc {
 
     fn code(&self, parent: &Self::Parent) -> WrapperResult<TokenStream> {
         let templ = format!("{}{}_", LIB_PREFIX, parent.name.as_str());
-        let mut new_name = self.name.replace(templ.as_str(), "");
+        let new_name = self.name.replace(templ.as_str(), "");
         let original_func_name = format_ident!("{}", self.name.as_str());
 
         // generate constructor
@@ -137,13 +137,6 @@ impl Rusty for LvFunc {
             });
         }
 
-        if let Some(n) = new_name.strip_prefix("set_") {
-            new_name = n.to_string();
-            if new_name == "type" {
-                new_name = "type_".to_string();
-            }
-        }
-
         let func_name = format_ident!("{}", new_name);
 
         // We don't deal with methods that return types yet
@@ -156,6 +149,8 @@ impl Rusty for LvFunc {
             arg.code(self)?;
         }
 
+        let is_const = self.args[0].get_type().is_const();
+
         let args_decl = self
             .args
             .iter()
@@ -164,9 +159,9 @@ impl Rusty for LvFunc {
                 // if first arg is `const`, then it should be immutable
                 let next_arg = if i == 0 {
                     if arg.get_type().is_const() {
-                        quote!(self)
+                        quote!(&self)
                     } else {
-                        quote!(mut self)
+                        quote!(&mut self)
                     }
                 } else {
                     arg.code(self).unwrap()
@@ -229,9 +224,15 @@ impl Rusty for LvFunc {
                 }
             });
 
+        let ret_type = if is_const {
+            quote!(&Self)
+        } else {
+            quote!(&mut Self)
+        };
+
         // TODO: Handle methods that return types
         Ok(quote! {
-            pub fn #func_name(#args_decl) -> Self {
+            pub fn #func_name(#args_decl) -> #ret_type {
                 #args_processing
                 unsafe {
                     lvgl_sys::#original_func_name(#args_call);
