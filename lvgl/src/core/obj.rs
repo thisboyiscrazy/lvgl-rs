@@ -3,7 +3,7 @@ use lvgl_sys::{lv_coord_t, lv_obj_t};
 
 use core::ptr;
 
-use crate::style::Align;
+use crate::style::{Align, Flag};
 //use alloc::boxed::Box;
 use crate::{
     //style::{Style, Align, Part, State},
@@ -93,6 +93,15 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
         self
     }
 
+    fn add_flag(mut self, flag: Flag) -> Self {
+        unsafe { lvgl_sys::lv_obj_add_flag(&mut *self.raw, flag.bits()) };
+        self
+    }
+
+    fn clear_flag(mut self, flag: Flag) -> Self {
+        unsafe { lvgl_sys::lv_obj_clear_flag(&mut *self.raw, flag.bits()) };
+        self
+    }
 }
 impl<C: 'static, T: Deref<Target = Obj<C>> + DerefMut + Sized> ObjExt<C> for T {}
 
@@ -136,36 +145,3 @@ macro_rules! define_object {
     }
 
     */
-
-
-// Adapted from https://stackoverflow.com/questions/28028854/how-do-i-match-enum-values-with-an-integer
-macro_rules! native_enum {
-    ($native_type:ty,
-        $(#[$meta:meta])* $vis:vis enum $name:ident {
-        $($(#[$vmeta:meta])* $vname:ident $(= $val:expr)?,)*
-    }) => {
-        $(#[$meta])*
-        #[derive(Debug, Clone, Copy)]
-        $vis enum $name {
-            $($(#[$vmeta])* $vname $(= $val as isize)?,)*
-        }
-
-        impl core::convert::TryFrom<$native_type> for $name {
-            type Error = ();
-
-            fn try_from(v: $native_type) -> Result<Self, Self::Error> {
-                match v {
-                    $(x if x == $name::$vname as $native_type => Ok($name::$vname),)*
-                    _ => Err(()),
-                }
-            }
-        }
-
-        impl From<$name> for $native_type {
-            fn from(v: $name) -> Self {
-                v as $native_type
-            }
-        }
-    }
-}
-

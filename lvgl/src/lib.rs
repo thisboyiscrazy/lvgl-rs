@@ -25,7 +25,9 @@ pub mod allocator;
 pub mod core;
 
 pub mod widgets;
+
 pub mod style;
+pub(crate) use style::native_enum;
 
 pub mod prelude {
     pub use crate::core::ObjExt;

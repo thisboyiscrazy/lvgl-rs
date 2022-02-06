@@ -1,4 +1,4 @@
-native_enum! {
+crate::native_enum! {
     lvgl_sys::lv_align_t,
     pub enum Align {
         Default = lvgl_sys::LV_ALIGN_DEFAULT,
@@ -26,7 +26,7 @@ native_enum! {
     }
 }
 
-native_enum! {
+crate::native_enum! {
     lvgl_sys::lv_anim_enable_t,
     pub enum Animation {
         On = lvgl_sys::lv_anim_enable_t_LV_ANIM_ON,

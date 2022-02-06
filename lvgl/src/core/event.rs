@@ -1,11 +1,9 @@
-//use crate::macros::native_enum;
-
 use alloc::boxed::Box;
 use lvgl_sys::lv_obj_t;
 
 use core::convert::TryInto;
 
-native_enum! {
+crate::native_enum! {
     lvgl_sys::lv_event_code_t,
     /// Events are triggered in LVGL when something happens which might be interesting to
     /// the user, e.g. if an object:
