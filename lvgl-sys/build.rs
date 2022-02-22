@@ -104,6 +104,19 @@ fn main() {
         }
     }
 
+    let sysroot = String::from_utf8(
+        Build::new()
+            .get_compiler().to_command()
+            .arg("-print-sysroot")
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("Failed to run the compiler")
+            .wait_with_output()
+            .expect("cc -print-sysroot failed")
+            .stdout
+        ).unwrap();
+    let sysroot = sysroot.trim();
+
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let bindings = bindgen::Builder::default()
         .header(shims_dir.join("lvgl_sys.h").to_str().unwrap())
@@ -116,7 +129,7 @@ fn main() {
         .ctypes_prefix("cty")
         .clang_args(&cc_args)
         .clang_args(&additional_args)
-        .clang_arg("-I/usr/local/Cellar/arm-none-eabi-gcc/10-2020-q4-major/gcc/arm-none-eabi/include")
+        .clang_arg(&format!("-I{}/include", &sysroot))
         .generate()
         .expect("Unable to generate bindings");
 
