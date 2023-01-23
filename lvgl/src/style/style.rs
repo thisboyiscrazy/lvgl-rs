@@ -94,10 +94,8 @@ bitflags! {
 
         /*Group 2*/
         const BG_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_COLOR;
-        const BG_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_COLOR_FILTERED;
         const BG_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_OPA;
         const BG_GRAD_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_GRAD_COLOR;
-        const BG_GRAD_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_GRAD_COLOR_FILTERED;
         const BG_GRAD_DIR = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_GRAD_DIR;
         const BG_MAIN_STOP = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_MAIN_STOP;
         const BG_GRAD_STOP = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_GRAD_STOP;
@@ -105,13 +103,11 @@ bitflags! {
         const BG_IMG_SRC = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_IMG_SRC;
         const BG_IMG_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_IMG_OPA;
         const BG_IMG_RECOLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_IMG_RECOLOR;
-        const BG_IMG_RECOLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_IMG_RECOLOR_FILTERED;
         const BG_IMG_RECOLOR_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_IMG_RECOLOR_OPA;
         const BG_IMG_TILED = lvgl_sys::lv_style_prop_t_LV_STYLE_BG_IMG_TILED;
 
         /*Group 3*/
         const BORDER_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_BORDER_COLOR;
-        const BORDER_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_BORDER_COLOR_FILTERED;
         const BORDER_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_BORDER_OPA;
         const BORDER_WIDTH = lvgl_sys::lv_style_prop_t_LV_STYLE_BORDER_WIDTH;
         const BORDER_SIDE = lvgl_sys::lv_style_prop_t_LV_STYLE_BORDER_SIDE;
@@ -119,7 +115,6 @@ bitflags! {
 
         const OUTLINE_WIDTH = lvgl_sys::lv_style_prop_t_LV_STYLE_OUTLINE_WIDTH;
         const OUTLINE_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_OUTLINE_COLOR;
-        const OUTLINE_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_OUTLINE_COLOR_FILTERED;
         const OUTLINE_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_OUTLINE_OPA;
         const OUTLINE_PAD = lvgl_sys::lv_style_prop_t_LV_STYLE_OUTLINE_PAD;
 
@@ -129,12 +124,10 @@ bitflags! {
         const SHADOW_OFS_Y = lvgl_sys::lv_style_prop_t_LV_STYLE_SHADOW_OFS_Y;
         const SHADOW_SPREAD = lvgl_sys::lv_style_prop_t_LV_STYLE_SHADOW_SPREAD;
         const SHADOW_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_SHADOW_COLOR;
-        const SHADOW_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_SHADOW_COLOR_FILTERED;
         const SHADOW_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_SHADOW_OPA;
 
         const IMG_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_IMG_OPA;
         const IMG_RECOLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_IMG_RECOLOR;
-        const IMG_RECOLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_IMG_RECOLOR_FILTERED;
         const IMG_RECOLOR_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_IMG_RECOLOR_OPA;
 
         const LINE_WIDTH = lvgl_sys::lv_style_prop_t_LV_STYLE_LINE_WIDTH;
@@ -142,19 +135,16 @@ bitflags! {
         const LINE_DASH_GAP = lvgl_sys::lv_style_prop_t_LV_STYLE_LINE_DASH_GAP;
         const LINE_ROUNDED = lvgl_sys::lv_style_prop_t_LV_STYLE_LINE_ROUNDED;
         const LINE_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_LINE_COLOR;
-        const LINE_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_LINE_COLOR_FILTERED;
         const LINE_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_LINE_OPA;
 
         /*Group 5*/
         const ARC_WIDTH = lvgl_sys::lv_style_prop_t_LV_STYLE_ARC_WIDTH;
         const ARC_ROUNDED = lvgl_sys::lv_style_prop_t_LV_STYLE_ARC_ROUNDED;
         const ARC_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_ARC_COLOR;
-        const ARC_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_ARC_COLOR_FILTERED;
         const ARC_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_ARC_OPA;
         const ARC_IMG_SRC = lvgl_sys::lv_style_prop_t_LV_STYLE_ARC_IMG_SRC;
 
         const TEXT_COLOR = lvgl_sys::lv_style_prop_t_LV_STYLE_TEXT_COLOR;
-        const TEXT_COLOR_FILTERED = lvgl_sys::lv_style_prop_t_LV_STYLE_TEXT_COLOR_FILTERED;
         const TEXT_OPA = lvgl_sys::lv_style_prop_t_LV_STYLE_TEXT_OPA;
         const TEXT_FONT = lvgl_sys::lv_style_prop_t_LV_STYLE_TEXT_FONT;
         const TEXT_LETTER_SPACE = lvgl_sys::lv_style_prop_t_LV_STYLE_TEXT_LETTER_SPACE;

@@ -48,6 +48,7 @@ lazy_static! {
 
         ("lv_coord_t", "lv_coord_t"),
         ("* const cty :: c_char", "_"),
+        ("* mut * const cty :: c_char", "* mut * const cty :: c_char"), 
     ]
     .iter()
     .cloned()
@@ -381,8 +382,13 @@ impl LvType {
     }
 
     pub fn is_str(&self) -> bool {
-        self.literal_name.ends_with("* const cty :: c_char")
+        self.literal_name == "* const cty :: c_char"
     }
+
+    pub fn is_str_arry(&self) -> bool {
+        self.literal_name == "* mut * const cty :: c_char"
+    }
+    
 }
 
 impl Rusty for LvType {
@@ -391,7 +397,9 @@ impl Rusty for LvType {
     fn code(&self, _parent: &Self::Parent) -> WrapperResult<TokenStream> {
         match TYPE_MAPPINGS.get(self.literal_name.as_str()) {
             Some(name) => {
-                let val = if self.is_str() {
+                let val = if self.is_str_arry() {
+                    quote!(* mut * const cty :: c_char)
+                } else if self.is_str() {
                     quote!(&cstr_core::CStr)
                 } else {
                     let ident = format_ident!("{}", name);
