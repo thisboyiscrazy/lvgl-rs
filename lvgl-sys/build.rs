@@ -63,6 +63,7 @@ fn main() {
         .warnings(false)
         .include(&lv_config_dir)
         .archiver("arm-none-eabi-ar") // To avoid "has no symbols" warnings
+        .flag("-fshort-enums")
         .compile("lvgl");
 
     let mut cc_args = vec![

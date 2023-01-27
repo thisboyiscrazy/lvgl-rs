@@ -8,7 +8,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use embedded_graphics_core::{
+use embedded_graphics::{
     prelude::*,
     draw_target::DrawTarget,
     primitives::Rectangle,

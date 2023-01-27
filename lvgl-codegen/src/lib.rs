@@ -388,7 +388,7 @@ impl LvType {
     pub fn is_str_arry(&self) -> bool {
         self.literal_name == "* mut * const cty :: c_char"
     }
-    
+
 }
 
 impl Rusty for LvType {
@@ -398,7 +398,7 @@ impl Rusty for LvType {
         match TYPE_MAPPINGS.get(self.literal_name.as_str()) {
             Some(name) => {
                 let val = if self.is_str_arry() {
-                    quote!(* mut * const cty :: c_char)
+                    quote!(*mut *const cty::c_char)
                 } else if self.is_str() {
                     quote!(&cstr_core::CStr)
                 } else {
@@ -454,15 +454,18 @@ impl CodeGen {
 
         for f in functions {
             if !f.is_method() {
-                continue
+                continue;
             }
 
-            if let Some((widget_name, _)) = f.name.strip_prefix(LIB_PREFIX).unwrap_or("")
-                .split_once("_") {
-
-                    if let Some(entry) = widgets.get_mut(widget_name) {
-                        entry.methods.push(f.clone())
-                    }
+            if let Some((widget_name, _)) = f
+                .name
+                .strip_prefix(LIB_PREFIX)
+                .unwrap_or("")
+                .split_once("_")
+            {
+                if let Some(entry) = widgets.get_mut(widget_name) {
+                    entry.methods.push(f.clone())
+                }
             }
         }
 
@@ -517,13 +520,7 @@ impl CodeGen {
         let mut fns2 = ast
             .items
             .iter()
-            .filter_map(|e| {
-                if let Item::Fn(fm) = e {
-                    Some(fm)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|e| if let Item::Fn(fm) = e { Some(fm) } else { None })
             .filter(|ff| ff.sig.ident.to_string().starts_with(LIB_PREFIX))
             .map(|ff| ff.into())
             .collect::<Vec<LvFunc>>();
