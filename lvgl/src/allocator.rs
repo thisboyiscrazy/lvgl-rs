@@ -1,4 +1,5 @@
 use core::alloc::{GlobalAlloc, Layout};
+use cty::size_t;
 
 #[global_allocator]
 static ALLOCATOR: LvglAlloc = LvglAlloc;
