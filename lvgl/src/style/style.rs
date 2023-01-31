@@ -1,5 +1,5 @@
 use alloc::boxed::Box;
-//use core::mem;
+use core::mem;
 //use cstr_core::CStr;
 
 pub enum Themes {
@@ -8,7 +8,28 @@ pub enum Themes {
 
 #[derive(Clone)]
 pub struct Style {
-    pub(crate) raw: Box<lvgl_sys::lv_style_t>,
+    pub raw: Box<lvgl_sys::lv_style_t>,
+}
+
+impl Style {
+    pub fn new() -> Self {
+        let raw = unsafe {
+            let mut style = mem::MaybeUninit::<lvgl_sys::lv_style_t>::uninit();
+            lvgl_sys::lv_style_init(style.as_mut_ptr());
+            Box::new(style.assume_init())
+        };
+        Self { raw }  
+    }
+
+    pub fn set_pad_all(&mut self,  value: lvgl_sys::lv_coord_t) {
+        unsafe { 
+            lvgl_sys::lv_style_set_pad_top(&mut *self.raw,value);
+            lvgl_sys::lv_style_set_pad_right(&mut *self.raw,value);
+            lvgl_sys::lv_style_set_pad_bottom(&mut *self.raw,value);
+            lvgl_sys::lv_style_set_pad_left(&mut *self.raw,value);
+        };
+    }
+
 }
 
 // impl Style {
@@ -26,16 +47,16 @@ pub struct Style {
 //     }
 // }
 
-// impl Default for Style {
-//     fn default() -> Self {
-//         let raw = unsafe {
-//             let mut style = mem::MaybeUninit::<lvgl_sys::lv_style_t>::uninit();
-//             lvgl_sys::lv_style_init(style.as_mut_ptr());
-//             Box::new(style.assume_init())
-//         };
-//         Self { raw }
-//     }
-// }
+//impl Default for Style {
+//    fn default() -> Self {
+//        let raw = unsafe {
+//            let mut style = mem::MaybeUninit::<lvgl_sys::lv_style_t>::uninit();
+//            lvgl_sys::lv_style_init(style.as_mut_ptr());
+//            Box::new(style.assume_init())
+//        };
+//        Self { raw }
+//    }
+//}
 
 bitflags! {
     pub struct Opacity: u32 {
@@ -109,6 +130,7 @@ bitflags! {
     }
 }
 
+// impl Style {
 
 
 // // Auto-gen code, please look into lvgl-codegen for any changes.

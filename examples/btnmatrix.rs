@@ -36,36 +36,33 @@ fn main() -> Result<(),Err> {
 
     let spacing = 12;
 
-    let btn_move_up = Btn::new(screen).apply(|obj| {
-        Label::new(obj)
-            .set_text(&CStr::from_bytes_with_nul(b"Move Up\0").unwrap());
+    let spacing = 12;
+
+    let mut m = [
+        CStr::from_bytes_with_nul(b"0.1mm\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"1mm\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"10mm\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"\n\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"UP\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"HOME\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"DOWN\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"\n\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"STOP\0").unwrap().as_ptr(),
+        CStr::from_bytes_with_nul(b"\0").unwrap().as_ptr(),
+    ];
+        
+    let ptr = m.as_mut_ptr();
+
+    let btnm = Btnmatrix::new(screen).apply(|obj| {
         obj
-        .align_to(screen, Align::TopMid, 0, 2*spacing)
+        .set_map(ptr)
+        .align_to(screen, Align::TopLeft, 0, 0)
+        .set_size(320, 200)
+        .on_event(Event::ValueChanged, |context| {
+            
+        });
     });
 
-    //const BTN_MAP: &[&'static str] = &[
-    //    "0.1mm", "1mm", "10mm","\n",
-    //    "UP","STOP","DOWN","\n",
-    //    "HOME","",
-    //];
-//
-    //let btnm = Btnmatrix::new(&mut screen).apply(|obj| {
-    //    .align_to(screen, Align::TopMid, 0, 0)
-    //});
-
-    //btnm.set_align(&mut screen, Align::Center, 0, 10)?;
-    
-    
-    
-    // Create the bar object
-    //let mut bar = Bar::new(&mut screen)?;
-
-    //bar.set_size(175, 20)?;
-    //bar.set_align(&mut screen, Align::Center, 0, 10)?;
-    //bar.set_range(0, 100)?;
-    //bar.on_event(|_b, _e| {
-    //    println!("Completed!");
-    //})?;
     let mut loop_started = Instant::now();
     'running: loop {    
         ui.task_handler();

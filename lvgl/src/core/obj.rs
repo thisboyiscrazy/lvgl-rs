@@ -11,6 +11,9 @@ use crate::{
     core::event::add_event_cb,
 };
 
+use cty::uint8_t;
+use crate::style::Style;
+
 /// Base LVGL object. C is the application context that we provide to the
 /// callbacks The lifetime of the object depends on the lifetime of its parent.
 /// (in lvgl, deleting an object deletes all its children).
@@ -122,6 +125,32 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
     fn has_state(&self, state: State) -> bool {
         unsafe { lvgl_sys::lv_obj_has_state(&*self.raw, state.bits()) }
     }
+
+    fn set_style_grid_column_dsc_array(&mut self, col_dsc: *mut lvgl_sys::lv_coord_t) {
+        unsafe { lvgl_sys::lv_obj_set_style_grid_column_dsc_array(&mut *self.raw, col_dsc, 0) };
+    }
+
+    fn set_grid_dsc_array(&mut self, col_dsc: *mut lvgl_sys::lv_coord_t, row_dsc: *mut lvgl_sys::lv_coord_t) {
+        unsafe { lvgl_sys::lv_obj_set_grid_dsc_array(&mut *self.raw, col_dsc, row_dsc) };
+    }
+
+    fn set_grid_cell(&mut self, column_align: lvgl_sys::lv_grid_align_t, col_pos: uint8_t, col_span: uint8_t, row_align: lvgl_sys::lv_grid_align_t, row_pos: uint8_t, row_span: uint8_t ) {
+        unsafe { lvgl_sys::lv_obj_set_grid_cell(&mut *self.raw, column_align, col_pos, col_span, row_align, row_pos, row_span) };
+    }
+
+    fn grid_fr(&mut self,  x: i16) -> i16 {
+        //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
+        (lvgl_sys::LV_COORD_MAX as i16) - 100 +x
+    }
+
+    fn add_style(&mut self,  style: &mut Style, selector: u32) {
+        unsafe {
+            lvgl_sys::lv_obj_add_style(&mut *self.raw,&mut *style.raw,selector)
+        }
+        //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
+    }
+    
+
 }
 
 impl<C: 'static, T: Deref<Target = Obj<C>> + DerefMut + Sized> ObjExt<C> for T {}
