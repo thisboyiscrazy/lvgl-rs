@@ -5,7 +5,7 @@ use embedded_graphics_simulator::{
     OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 
-use lvgl::{self, style::Align, style::Flag };
+use lvgl::{self, style::Align, style::GridAlign, style::Flag };
 use std::time::Instant;
 use lvgl::core::ObjExt;
 use lvgl::core::Lvgl;
@@ -28,13 +28,14 @@ use lvgl::widgets::{Btn,Label};
 pub struct BtnTest {
     style: Style,
     col_dsc: Box<[i16; 4]>,
-    row_dsc: Box<[i16; 4]>,
+    row_dsc: Box<[i16; 5]>,
     btn_0_1mm: Btn<BtnTest>,
     btn_1mm: Btn<BtnTest>,
     btn_10mm: Btn<BtnTest>,
     btn_up: Btn<BtnTest>,
     btn_home: Btn<BtnTest>,
     btn_down: Btn<BtnTest>,
+    current_pos: Label<BtnTest>,
 }
 
 impl BtnTest {
@@ -49,7 +50,7 @@ impl BtnTest {
         screen.add_style(&mut style, 0);
 
         let mut col_dsc = Box::new([screen.grid_fr(1), screen.grid_fr(1), screen.grid_fr(1), lvgl_sys::LV_GRID_TEMPLATE_LAST as i16]);
-        let mut row_dsc = Box::new([screen.grid_fr(1), screen.grid_fr(1), screen.grid_fr(1), lvgl_sys::LV_GRID_TEMPLATE_LAST as i16]);
+        let mut row_dsc = Box::new([screen.grid_fr(1), screen.grid_fr(1), screen.grid_fr(1), screen.grid_fr(1), lvgl_sys::LV_GRID_TEMPLATE_LAST as i16]);
 
         screen.set_grid_dsc_array(col_dsc.as_mut_ptr(), row_dsc.as_mut_ptr());
         
@@ -64,6 +65,8 @@ impl BtnTest {
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("0.1mm").unwrap().as_c_str());
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
+            
             
         });
 
@@ -77,6 +80,7 @@ impl BtnTest {
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("1mm").unwrap().as_c_str());
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
             
         });
 
@@ -90,7 +94,8 @@ impl BtnTest {
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("10mm").unwrap().as_c_str());
-            
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
+
         });
 
         let btn_up = Btn::new(screen).apply(|obj| {
@@ -103,6 +108,7 @@ impl BtnTest {
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("UP").unwrap().as_c_str());
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
             
         });
 
@@ -116,6 +122,7 @@ impl BtnTest {
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("HOME").unwrap().as_c_str());
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
             
         });
 
@@ -129,6 +136,28 @@ impl BtnTest {
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("DOWN").unwrap().as_c_str());
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
+             
+        });
+
+        let btn_stop = Btn::new(screen).apply(|obj| {
+            
+            obj
+            .on_event(Event::Clicked, |context| {
+                println!("Clicked on: stop");
+            })
+            .set_grid_cell(lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_STRETCH, 0, 3, lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_STRETCH, 2, 1);
+
+            let mut btn_lbl = Label::new(obj);
+            btn_lbl.set_text(CString::new("STOP").unwrap().as_c_str());
+            btn_lbl.align_to(obj,Align::Center, 0, 0);
+             
+        });
+
+        let mut current_pos = Label::new(screen).apply(|obj| {
+            
+            obj.set_text(CString::new("0.0").unwrap().as_c_str());
+            obj.set_grid_cell(lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_CENTER, 0, 3, lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_CENTER, 3, 1);
             
         });
 
@@ -136,6 +165,7 @@ impl BtnTest {
             style, col_dsc, row_dsc,
             btn_0_1mm, btn_1mm, btn_10mm,
             btn_up, btn_home, btn_down,
+            current_pos,
         }
 
     }

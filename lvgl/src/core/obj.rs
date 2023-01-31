@@ -6,7 +6,7 @@ use core::{
 };
 
 use crate::{
-    style::{Align, Flag, State},
+    style::{Align, GridAlign, Flag, State},
     core::Event,
     core::event::add_event_cb,
 };
@@ -147,8 +147,9 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
         unsafe {
             lvgl_sys::lv_obj_add_style(&mut *self.raw,&mut *style.raw,selector)
         }
-        //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
     }
+
+    
     
 
 }
