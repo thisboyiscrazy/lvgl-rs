@@ -130,10 +130,6 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
         unsafe { lvgl_sys::lv_obj_has_state(&*self.raw, state.bits()) }
     }
 
-    fn set_style_grid_column_dsc_array(&mut self, col_dsc: *mut lvgl_sys::lv_coord_t) {
-        unsafe { lvgl_sys::lv_obj_set_style_grid_column_dsc_array(&mut *self.raw, col_dsc, 0) };
-    }
-
     fn set_grid_dsc_array(
         &mut self,
         col_dsc: *mut lvgl_sys::lv_coord_t,
@@ -162,11 +158,6 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
                 row_span,
             )
         };
-    }
-
-    fn grid_fr(&mut self, x: i16) -> i16 {
-        //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
-        (lvgl_sys::LV_COORD_MAX as i16) - 100 + x
     }
 
     fn add_style(&mut self, style: &mut Style, selector: u32) {

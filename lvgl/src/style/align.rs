@@ -47,3 +47,17 @@ crate::native_enum! {
         
     }
 }
+
+
+// This seems ungly
+#[inline]
+pub fn grid_free(x: i16) -> i16 {
+    //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
+    (lvgl_sys::LV_COORD_MAX as i16) - 100 + x
+}
+
+#[inline]
+pub fn grid_last() -> i16 {
+    //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
+    lvgl_sys::LV_COORD_MAX as i16
+}
