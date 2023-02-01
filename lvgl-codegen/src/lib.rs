@@ -20,7 +20,6 @@ lazy_static! {
         ("u8", "u8"),
         ("u32", "u32"),
         ("bool", "bool"),
-
         ("lv_opa_t", "lv_opa_t"),
         ("lv_anim_enable_t", "lv_anim_enable_t"),
         ("lv_arc_mode_t", "lv_arc_mode_t"),
@@ -37,18 +36,19 @@ lazy_static! {
         ("lv_keyboard_mode_t", "lv_keyboard_mode_t"),
         ("lv_label_long_mode_t", "lv_label_long_mode_t"),
         ("lv_menu_mode_header_t", "lv_menu_mode_header_t"),
-        ("lv_menu_mode_root_back_btn_t", "lv_menu_mode_root_back_btn_t"),
+        (
+            "lv_menu_mode_root_back_btn_t",
+            "lv_menu_mode_root_back_btn_t"
+        ),
         ("lv_roller_mode_t", "lv_roller_mode_t"),
         ("lv_slider_mode_t", "lv_slider_mode_t"),
         ("lv_span_mode_t", "lv_span_mode_t"),
         ("lv_span_overflow_t", "lv_span_overflow_t"),
         ("lv_table_cell_ctrl_t", "lv_table_cell_ctrl_t"),
         ("lv_text_align_t", "lv_text_align_t"),
-
-
         ("lv_coord_t", "lv_coord_t"),
         ("* const cty :: c_char", "_"),
-        ("* mut * const cty :: c_char", "* mut * const cty :: c_char"), 
+        ("* mut * const cty :: c_char", "* mut * const cty :: c_char"),
     ]
     .iter()
     .cloned()
@@ -297,7 +297,6 @@ impl From<&ItemFn> for LvFunc {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct LvArg {
     name: String,
@@ -366,9 +365,7 @@ pub struct LvType {
 
 impl LvType {
     pub fn new(literal_name: String) -> Self {
-        Self {
-            literal_name,
-        }
+        Self { literal_name }
     }
 
     pub fn from(r_type: Box<syn::Type>) -> Self {
@@ -388,7 +385,6 @@ impl LvType {
     pub fn is_str_arry(&self) -> bool {
         self.literal_name == "* mut * const cty :: c_char"
     }
-
 }
 
 impl Rusty for LvType {
@@ -446,11 +442,18 @@ impl CodeGen {
     fn extract_widgets(functions: &[LvFunc]) -> CGResult<Vec<LvWidget>> {
         let widget_names = Self::get_widget_names(functions);
 
-        let mut widgets = widget_names.iter().map(|n|
-            (n.as_str(), LvWidget {
-            name: n.clone(),
-            methods: Vec::new(),
-        })).collect::<HashMap<_,_>>();
+        let mut widgets = widget_names
+            .iter()
+            .map(|n| {
+                (
+                    n.as_str(),
+                    LvWidget {
+                        name: n.clone(),
+                        methods: Vec::new(),
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
 
         for f in functions {
             if !f.is_method() {

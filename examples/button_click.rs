@@ -65,14 +65,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: 0.1mm");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                0,
-                1,
-                GridAlign::Stretch,
-                0,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 0, 1, GridAlign::Stretch, 0, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("0.1mm").unwrap().as_c_str());
@@ -83,14 +76,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: 1mm");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                1,
-                1,
-                GridAlign::Stretch,
-                0,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 1, 1, GridAlign::Stretch, 0, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("1mm").unwrap().as_c_str());
@@ -101,14 +87,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: 10mm");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                2,
-                1,
-                GridAlign::Stretch,
-                0,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 2, 1, GridAlign::Stretch, 0, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("10mm").unwrap().as_c_str());
@@ -119,14 +98,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: up");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                0,
-                1,
-                GridAlign::Stretch,
-                1,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 0, 1, GridAlign::Stretch, 1, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("UP").unwrap().as_c_str());
@@ -137,14 +109,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: home");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                1,
-                1,
-                GridAlign::Stretch,
-                1,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 1, 1, GridAlign::Stretch, 1, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("HOME").unwrap().as_c_str());
@@ -155,14 +120,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: down");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                2,
-                1,
-                GridAlign::Stretch,
-                1,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 2, 1, GridAlign::Stretch, 1, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("DOWN").unwrap().as_c_str());
@@ -173,14 +131,7 @@ impl BtnTest {
             obj.on_event(Event::Clicked, |context| {
                 println!("Clicked on: stop");
             })
-            .set_grid_cell(
-                GridAlign::Stretch,
-                0,
-                3,
-                GridAlign::Stretch,
-                2,
-                1,
-            );
+            .set_grid_cell(GridAlign::Stretch, 0, 3, GridAlign::Stretch, 2, 1);
 
             let mut btn_lbl = Label::new(obj);
             btn_lbl.set_text(CString::new("STOP").unwrap().as_c_str());
@@ -189,14 +140,7 @@ impl BtnTest {
 
         let mut current_pos = Label::new(screen).apply(|obj| {
             obj.set_text(CString::new("0.0").unwrap().as_c_str());
-            obj.set_grid_cell(
-                GridAlign::Center,
-                0,
-                3,
-                GridAlign::Center,
-                3,
-                1,
-            );
+            obj.set_grid_cell(GridAlign::Center, 0, 3, GridAlign::Center, 3, 1);
         });
 
         Self {

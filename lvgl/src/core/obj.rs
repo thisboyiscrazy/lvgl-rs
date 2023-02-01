@@ -188,20 +188,3 @@ macro_rules! define_object {
         }
     };
 }
-
-/*
-
-fn add_style(&self, style: Style, part: Part, state: State) {
-    let part: lvgl_sys::lv_part_t = part.into();
-    let selector = part | state.bits() as u32;
-
-    unsafe {
-        lvgl_sys::lv_obj_add_style(
-            self.raw().as_mut(),
-            Box::into_raw(style.raw),
-            selector
-        );
-    };
-}
-
-*/

@@ -44,10 +44,8 @@ crate::native_enum! {
         SpaceEvenly = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_SPACE_EVENLY,
         SpaceAround = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_SPACE_AROUND,
         SpaceBetween = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_SPACE_BETWEEN,
-        
     }
 }
-
 
 // This seems ungly
 #[inline]
