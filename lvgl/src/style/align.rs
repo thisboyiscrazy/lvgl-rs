@@ -38,9 +38,12 @@ crate::native_enum! {
     lvgl_sys::lv_grid_align_t,
     pub enum GridAlign {
         Start = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_START,
-        End = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_END,
         Center = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_CENTER,
+        End = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_END,
+        Stretch = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_STRETCH,
         SpaceEvenly = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_SPACE_EVENLY,
+        SpaceAround = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_SPACE_AROUND,
         SpaceBetween = lvgl_sys::lv_grid_align_t_LV_GRID_ALIGN_SPACE_BETWEEN,
+        
     }
 }
