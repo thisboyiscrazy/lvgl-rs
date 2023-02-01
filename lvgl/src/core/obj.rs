@@ -6,13 +6,13 @@ use core::{
 };
 
 use crate::{
-    style::{Align, GridAlign, Flag, State},
-    core::Event,
     core::event::add_event_cb,
+    core::Event,
+    style::{Align, Flag, GridAlign, State},
 };
 
-use cty::uint8_t;
 use crate::style::Style;
+use cty::uint8_t;
 
 /// Base LVGL object. C is the application context that we provide to the
 /// callbacks The lifetime of the object depends on the lifetime of its parent.
@@ -66,9 +66,13 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
         self
     }
 
-    fn align_to(&mut self, base: &impl ObjExt<C>, align: Align,
-             x_mod: lv_coord_t, y_mod: lv_coord_t) -> &mut Self
-    {
+    fn align_to(
+        &mut self,
+        base: &impl ObjExt<C>,
+        align: Align,
+        x_mod: lv_coord_t,
+        y_mod: lv_coord_t,
+    ) -> &mut Self {
         unsafe { lvgl_sys::lv_obj_align_to(&mut *self.raw, base.raw, align.into(), x_mod, y_mod) };
         self
     }
@@ -130,28 +134,44 @@ pub trait ObjExt<C: 'static>: Deref<Target = Obj<C>> + DerefMut + Sized {
         unsafe { lvgl_sys::lv_obj_set_style_grid_column_dsc_array(&mut *self.raw, col_dsc, 0) };
     }
 
-    fn set_grid_dsc_array(&mut self, col_dsc: *mut lvgl_sys::lv_coord_t, row_dsc: *mut lvgl_sys::lv_coord_t) {
+    fn set_grid_dsc_array(
+        &mut self,
+        col_dsc: *mut lvgl_sys::lv_coord_t,
+        row_dsc: *mut lvgl_sys::lv_coord_t,
+    ) {
         unsafe { lvgl_sys::lv_obj_set_grid_dsc_array(&mut *self.raw, col_dsc, row_dsc) };
     }
 
-    fn set_grid_cell(&mut self, column_align: lvgl_sys::lv_grid_align_t, col_pos: uint8_t, col_span: uint8_t, row_align: lvgl_sys::lv_grid_align_t, row_pos: uint8_t, row_span: uint8_t ) {
-        unsafe { lvgl_sys::lv_obj_set_grid_cell(&mut *self.raw, column_align, col_pos, col_span, row_align, row_pos, row_span) };
-    }
-
-    fn grid_fr(&mut self,  x: i16) -> i16 {
-        //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
-        (lvgl_sys::LV_COORD_MAX as i16) - 100 +x
-    }
-
-    fn add_style(&mut self,  style: &mut Style, selector: u32) {
+    fn set_grid_cell(
+        &mut self,
+        column_align: GridAlign,
+        col_pos: uint8_t,
+        col_span: uint8_t,
+        row_align: GridAlign,
+        row_pos: uint8_t,
+        row_span: uint8_t,
+    ) {
         unsafe {
-            lvgl_sys::lv_obj_add_style(&mut *self.raw,&mut *style.raw,selector)
-        }
+            lvgl_sys::lv_obj_set_grid_cell(
+                &mut *self.raw,
+                column_align as u8,
+                col_pos,
+                col_span,
+                row_align as u8,
+                row_pos,
+                row_span,
+            )
+        };
     }
 
-    
-    
+    fn grid_fr(&mut self, x: i16) -> i16 {
+        //#define LV_GRID_FR(x)          (LV_COORD_MAX - 100 + x)
+        (lvgl_sys::LV_COORD_MAX as i16) - 100 + x
+    }
 
+    fn add_style(&mut self, style: &mut Style, selector: u32) {
+        unsafe { lvgl_sys::lv_obj_add_style(&mut *self.raw, &mut *style.raw, selector) }
+    }
 }
 
 impl<C: 'static, T: Deref<Target = Obj<C>> + DerefMut + Sized> ObjExt<C> for T {}
@@ -159,7 +179,7 @@ impl<C: 'static, T: Deref<Target = Obj<C>> + DerefMut + Sized> ObjExt<C> for T {
 macro_rules! define_object {
     ($item:ident) => {
         pub struct $item<C> {
-            pub(crate) obj: Obj<C>
+            pub(crate) obj: Obj<C>,
         }
 
         impl<C> core::ops::Deref for $item<C> {
@@ -178,21 +198,19 @@ macro_rules! define_object {
     };
 }
 
-
-
 /*
 
-    fn add_style(&self, style: Style, part: Part, state: State) {
-        let part: lvgl_sys::lv_part_t = part.into();
-        let selector = part | state.bits() as u32;
+fn add_style(&self, style: Style, part: Part, state: State) {
+    let part: lvgl_sys::lv_part_t = part.into();
+    let selector = part | state.bits() as u32;
 
-        unsafe {
-            lvgl_sys::lv_obj_add_style(
-                self.raw().as_mut(),
-                Box::into_raw(style.raw),
-                selector
-            );
-        };
-    }
+    unsafe {
+        lvgl_sys::lv_obj_add_style(
+            self.raw().as_mut(),
+            Box::into_raw(style.raw),
+            selector
+        );
+    };
+}
 
-    */
+*/
